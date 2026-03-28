@@ -41,15 +41,6 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;overflow:hidden;transition:background .2s,color .2s;}
 
-/* ===== ICON SIDEBAR ===== */
-.icon-sidebar{width:var(--icon-w);min-width:var(--icon-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px;z-index:101;flex-shrink:0;}
-.logo-mark{width:34px;height:34px;background:linear-gradient(135deg,var(--grad-start),var(--grad-mid));border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;cursor:pointer;}
-.logo-mark svg{width:16px;height:16px;fill:white;}
-.i-btn{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s;color:var(--text3);font-size:15px;user-select:none;}
-.i-btn:hover{background:var(--surface2);color:var(--text2);}
-.i-btn.active{background:var(--accent-soft);color:var(--accent);}
-.i-divider{width:26px;height:1px;background:var(--border);margin:4px 0;}
-
 /* ===== NAV SIDEBAR ===== */
 .nav-sidebar{width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;overflow-y:auto;transition:all .25s;z-index:100;flex-shrink:0;}
 .nav-sidebar.collapsed{width:0;min-width:0;overflow:hidden;}
@@ -126,7 +117,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 .kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:18px;}
 .kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 10px;text-align:center;transition:all .15s;}
 .kpi:hover{border-color:var(--border2);transform:translateY(-1px);}
-.kpi-num{font-size:26px;font-weight:800;font-family:'Syne',sans-serif;margin-bottom:3px;}
+.kpi-num{font-size:20px;font-weight:700;font-family:'Syne',sans-serif;margin-bottom:3px;line-height:1.2;}
 .kpi-label{font-size:9.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;}
 .dash-row{display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
 .dash-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;flex:1;min-width:200px;}
@@ -233,7 +224,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 .project-card-sub{font-size:11px;color:var(--text3);margin-bottom:10px;}
 .project-card-stats{display:flex;gap:12px;margin-bottom:10px;}
 .proj-stat{text-align:center;}
-.proj-stat-num{font-size:20px;font-weight:800;font-family:'Syne',sans-serif;}
+.proj-stat-num{font-size:18px;font-weight:700;font-family:'Syne',sans-serif;}
 .proj-stat-label{font-size:9.5px;color:var(--text3);}
 .progress-bar{height:4px;background:var(--surface3);border-radius:2px;overflow:hidden;}
 .progress-fill{height:100%;border-radius:2px;transition:width .5s;}
@@ -322,7 +313,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;}
 .sidebar-overlay.active{display:block;}
 @media(max-width:700px){
-  .icon-sidebar{display:none;}
+  
   .nav-sidebar{position:fixed;left:0;top:0;height:100vh;transform:translateX(-100%);transition:transform .25s;}
   .nav-sidebar.mobile-open{transform:translateX(0);}
   .view-tabs{display:none;}
@@ -336,9 +327,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 <body>
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
-<!-- ICON SIDEBAR -->
-<div class="icon-sidebar">
-  <div class="logo-mark"><svg viewBox="0 0 20 20"><path d="M3 5h14v2H3zm0 4h14v2H3zm0 4h9v2H3z"/></svg></div>
   <div class="i-btn active" onclick="setView('dashboard')" title="Dashboard">📊</div>
   <div class="i-btn" onclick="setView('kanban')" title="Kanban">⬜</div>
   <div class="i-btn" onclick="setView('list')" title="Lista">≡</div>
@@ -513,11 +501,7 @@ function closeSidebar(){document.getElementById('nav-sidebar').classList.remove(
 function setView(view,navEl,tabEl){
   state.currentView=view;state.filterProject=null;
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
-  document.querySelectorAll('.i-btn').forEach(el=>el.classList.remove('active'));
-  const nv=document.getElementById('nav-'+view);if(nv)nv.classList.add('active');else if(navEl)navEl.classList.add('active');
-  document.querySelectorAll('.view-tab').forEach(el=>el.classList.remove('active'));
-  const tv=document.getElementById('tab-'+view);if(tv)tv.classList.add('active');else if(tabEl)tabEl.classList.add('active');
-  const titles={dashboard:'Dashboard',kanban:'Kanban',list:'Lista de Tareas',calendar:'Calendario',projects:'Espacios'};
+  document.querySelectorAll(';
   document.getElementById('view-title').textContent=titles[view]||view;
   renderContent();if(window.innerWidth<=700)closeSidebar();
 }
@@ -558,12 +542,12 @@ function renderDashboard(){
   return`<div class="dash-view">
     <div class="dash-welcome">${getHour()}, <span class="grad">Luis</span> 👋</div>
     <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-num" style="color:#e040b0">${active.length}</div><div class="kpi-label">Activas</div></div>
+      <div class="kpi"><div class="kpi-num" style="color:var(--accent)">${active.length}</div><div class="kpi-label">Activas</div></div>
       <div class="kpi"><div class="kpi-num" style="color:var(--green)">${done.length}</div><div class="kpi-label">Completadas</div></div>
-      <div class="kpi"><div class="kpi-num" style="color:#ef5350">${overdue.length}</div><div class="kpi-label">Vencidas</div></div>
+      <div class="kpi"><div class="kpi-num" style="color:var(--red)">${overdue.length}</div><div class="kpi-label">Vencidas</div></div>
       <div class="kpi"><div class="kpi-num" style="color:var(--yellow)">${todayT.length}</div><div class="kpi-label">Hoy</div></div>
-      <div class="kpi"><div class="kpi-num" style="color:var(--accent)">${weekT.length}</div><div class="kpi-label">Esta semana</div></div>
-      <div class="kpi"><div class="kpi-num">${pct}%</div><div class="kpi-label">Progreso</div></div>
+      <div class="kpi"><div class="kpi-num" style="color:var(--blue)">${weekT.length}</div><div class="kpi-label">Esta semana</div></div>
+      <div class="kpi"><div class="kpi-num" style="color:var(--text3)">${pct}%</div><div class="kpi-label">Progreso</div></div>
     </div>
     <div class="dash-row">
       <div class="dash-card">
@@ -606,7 +590,7 @@ function renderCalendar(){const d=state.calendarDate;const year=d.getFullYear(),
 function bindCalendar(){document.getElementById('cal-prev').onclick=()=>{const d=state.calendarDate;state.calendarDate=new Date(d.getFullYear(),d.getMonth()-1,1);renderContent();};document.getElementById('cal-next').onclick=()=>{const d=state.calendarDate;state.calendarDate=new Date(d.getFullYear(),d.getMonth()+1,1);renderContent();};}
 
 /* PROJECTS */
-function renderProjects(){return`<div class="projects-view"><div class="projects-top"><div class="projects-heading">Mis Espacios</div><button class="btn btn-primary btn-sm" onclick="openProjectModal()">+ Nuevo espacio</button></div><div class="projects-grid">${state.projects.map(p=>{const tasks=state.tasks.filter(t=>t.projectId===p.id);const done=tasks.filter(t=>t.status==='completado').length;const active=tasks.filter(t=>t.status!=='completado').length;const pct=tasks.length?Math.round(done/tasks.length*100):0;return`<div class="project-card" onclick="filterBySpace('${p.id}');setView('kanban')"><div class="project-card-top"><div class="project-card-left"><div class="project-card-dot" style="background:${p.color}"></div><div class="project-card-name">${esc(p.name)}</div></div><div class="project-card-actions"><button class="proj-act-btn" onclick="event.stopPropagation();openEditSpaceModal('${p.id}')">✏️</button><button class="proj-act-btn del" onclick="event.stopPropagation();confirmDeleteSpace('${p.id}')">✕</button></div></div><div class="project-card-sub">${tasks.length} tareas · ${active} activas</div><div class="project-card-stats"><div class="proj-stat"><div class="proj-stat-num" style="color:${p.color}">${active}</div><div class="proj-stat-label">Activas</div></div><div class="proj-stat"><div class="proj-stat-num" style="color:var(--green)">${done}</div><div class="proj-stat-label">Listas</div></div><div class="proj-stat"><div class="proj-stat-num">${pct}%</div><div class="proj-stat-label">Progreso</div></div></div><div><div class="progress-label"><span>Avance</span><span>${pct}%</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${p.color}"></div></div></div></div>`;}).join('')}<div class="new-project-card" onclick="openProjectModal()"><div style="font-size:22px">+</div><div style="font-size:12.5px;font-weight:600">Nuevo espacio</div></div></div></div>`;}
+function renderProjects(){return`<div class="projects-view"><div class="projects-top"><div class="projects-heading">Mis Espacios</div><button class="btn btn-primary btn-sm" onclick="openProjectModal()">+ Nuevo espacio</button></div><div class="projects-grid">${state.projects.map(p=>{const tasks=state.tasks.filter(t=>t.projectId===p.id);const done=tasks.filter(t=>t.status==='completado').length;const active=tasks.filter(t=>t.status!=='completado').length;const pct=tasks.length?Math.round(done/tasks.length*100):0;return`<div class="project-card" onclick="filterBySpace('${p.id}');setView('kanban')"><div class="project-card-top"><div class="project-card-left"><div class="project-card-dot" style="background:${p.color}"></div><div class="project-card-name">${esc(p.name)}</div></div><div class="project-card-actions"><button class="proj-act-btn" onclick="event.stopPropagation();openEditSpaceModal('${p.id}')">✏️</button><button class="proj-act-btn del" onclick="event.stopPropagation();confirmDeleteSpace('${p.id}')">✕</button></div></div><div class="project-card-sub">${tasks.length} tareas · ${active} activas</div><div class="project-card-stats"><div class="proj-stat"><div class="proj-stat-num" style="color:${p.color}">${active}</div><div class="proj-stat-label">Activas</div></div><div class="proj-stat"><div class="proj-stat-num" style="color:var(--green)">${done}</div><div class="proj-stat-label">Listas</div></div><div class="proj-stat"><div class="proj-stat-num" style="color:var(--text3)">${pct}%</div><div class="proj-stat-label">Progreso</div></div></div><div><div class="progress-label"><span>Avance</span><span>${pct}%</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${p.color}"></div></div></div></div>`;}).join('')}<div class="new-project-card" onclick="openProjectModal()"><div style="font-size:22px">+</div><div style="font-size:12.5px;font-weight:600">Nuevo espacio</div></div></div></div>`;}
 
 /* EDIT SPACE */
 function openEditSpaceModal(id){const proj=getProject(id);if(!proj)return;createModal('Editar Espacio',`<div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="ep-name" value="${esc(proj.name)}" autofocus></div><div class="form-group"><label class="form-label">Color</label><div class="color-picker">${COLORS.map(c=>`<div class="color-dot-pick ${proj.color===c?'selected':''}" style="background:${c}" onclick="selectColor(this)"></div>`).join('')}</div></div>`,async()=>{const name=document.getElementById('ep-name').value.trim();if(!name){showToast('Ingresá un nombre','error');return;}const sel=document.querySelector('.color-dot-pick.selected');proj.name=name;proj.color=sel?sel.style.background:proj.color;await saveSpace(proj);closeModal();render();showToast('✓ Espacio actualizado','success');},'Guardar');}
