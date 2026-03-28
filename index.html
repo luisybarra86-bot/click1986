@@ -501,7 +501,10 @@ function closeSidebar(){document.getElementById('nav-sidebar').classList.remove(
 function setView(view,navEl,tabEl){
   state.currentView=view;state.filterProject=null;
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
-  document.querySelectorAll(';
+  document.querySelectorAll('.view-tab').forEach(el=>el.classList.remove('active'));
+  const nv=document.getElementById('nav-'+view);if(nv)nv.classList.add('active');else if(navEl)navEl.classList.add('active');
+  const tv=document.getElementById('tab-'+view);if(tv)tv.classList.add('active');else if(tabEl)tabEl.classList.add('active');
+  const titles={dashboard:'Dashboard',kanban:'Kanban',list:'Lista de Tareas',calendar:'Calendario',projects:'Espacios'};
   document.getElementById('view-title').textContent=titles[view]||view;
   renderContent();if(window.innerWidth<=700)closeSidebar();
 }
