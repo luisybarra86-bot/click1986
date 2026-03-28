@@ -645,6 +645,7 @@ body {
       <div class="view-tab" id="tab-calendar" onclick="setView('calendar',null,this)">◻ Cal</div>
       <div class="view-tab" id="tab-projects" onclick="setView('projects',null,this)">⬡ Espacios</div>
     </div>
+    <button class="btn btn-ghost" onclick="enviarResumenTelegram()" title="Enviar resumen a Telegram" style="font-size:13px">📨 Telegram</button>
     <button class="btn btn-primary" onclick="openTaskModal()">+ Nueva tarea</button>
   </div>
 
@@ -1286,9 +1287,90 @@ function showToast(msg, type='') {
   setTimeout(() => el.remove(), 2600);
 }
 
+// ======== TELEGRAM NOTIFICATIONS ========
+const TG_TOKEN = '8667108711:AAF20xY1pn0KCRsaf-0PErtmR8yRWl6lgbY';
+const TG_CHAT  = '5214189495';
+
+async function sendTelegram(msg) {
+  try {
+    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: TG_CHAT, text: msg, parse_mode: 'HTML' })
+    });
+  } catch(e) { console.log('Telegram error:', e); }
+}
+
+function checkDueTasks() {
+  const today = new Date().toISOString().slice(0,10);
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0,10);
+
+  const todayTasks    = state.tasks.filter(t => t.dueDate === today    && t.status !== 'completado');
+  const tomorrowTasks = state.tasks.filter(t => t.dueDate === tomorrow && t.status !== 'completado');
+  const overdueTasks  = state.tasks.filter(t => t.dueDate && t.dueDate < today && t.status !== 'completado');
+
+  let msg = '';
+
+  if (overdueTasks.length) {
+    msg += `🔴 <b>VENCIDAS (${overdueTasks.length})</b>\n`;
+    overdueTasks.forEach(t => {
+      const proj = getProject(t.projectId);
+      msg += `• ${t.title}${proj?' — '+proj.name:''} (venció ${formatDate(t.dueDate)})\n`;
+    });
+    msg += '\n';
+  }
+
+  if (todayTasks.length) {
+    msg += `🟡 <b>VENCEN HOY (${todayTasks.length})</b>\n`;
+    todayTasks.forEach(t => {
+      const proj = getProject(t.projectId);
+      msg += `• ${t.title}${proj?' — '+proj.name:''}\n`;
+    });
+    msg += '\n';
+  }
+
+  if (tomorrowTasks.length) {
+    msg += `🔵 <b>VENCEN MAÑANA (${tomorrowTasks.length})</b>\n`;
+    tomorrowTasks.forEach(t => {
+      const proj = getProject(t.projectId);
+      msg += `• ${t.title}${proj?' — '+proj.name:''}\n`;
+    });
+  }
+
+  if (msg) {
+    msg = `📋 <b>click.1986 — Resumen de tareas</b>\n\n` + msg;
+    sendTelegram(msg);
+  }
+}
+
+function startNotificationScheduler() {
+  const today = new Date().toISOString().slice(0,10);
+  const lastCheck = localStorage.getItem('click1986_last_notif');
+  if (lastCheck !== today) {
+    setTimeout(() => {
+      checkDueTasks();
+      localStorage.setItem('click1986_last_notif', today);
+    }, 3000);
+  }
+  setInterval(() => {
+    const now = new Date().toISOString().slice(0,10);
+    const last = localStorage.getItem('click1986_last_notif');
+    if (last !== now) {
+      checkDueTasks();
+      localStorage.setItem('click1986_last_notif', now);
+    }
+  }, 3600000);
+}
+
+window.enviarResumenTelegram = function() {
+  checkDueTasks();
+  showToast('📨 Resumen enviado a Telegram', 'success');
+}
+
 // ======== INIT ========
 loadState();
 render();
+startNotificationScheduler();
 
 // ======== SERVICE WORKER ========
 if ('serviceWorker' in navigator) {
