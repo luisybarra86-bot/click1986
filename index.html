@@ -10,6 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="click.1986">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
 /* ===== DARK THEME ===== */
@@ -673,6 +674,11 @@ const STATUS_LABELS = {
 };
 const PRIORITY_LABELS = { urgent:'Urgente', high:'Alta', normal:'Normal', low:'Baja' };
 
+// ======== SUPABASE ========
+const SUPA_URL = 'https://ecljqfqzdatbanzvzxai.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbGpxZnF6ZGF0YmFuenZ6eGFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MTcyMTEsImV4cCI6MjA5MDI5MzIxMX0.PCGLU4YqNmiEw-jfNquDeQwpRh3uxQD0lfmGbDDidVA';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
 // ======== STATE ========
 let state = {
   projects: [],
@@ -683,39 +689,65 @@ let state = {
   theme: 'dark',
 };
 
-function loadState() {
-  try {
-    const saved = localStorage.getItem('click1986_v2');
-    if (saved) {
-      const p = JSON.parse(saved);
-      state.projects = p.projects || [];
-      state.tasks = p.tasks || [];
-      state.theme = p.theme || 'dark';
-    }
-  } catch(e) {}
+async function loadState() {
+  // Load theme from localStorage (UI preference)
+  state.theme = localStorage.getItem('click1986_theme') || 'dark';
+  applyTheme(state.theme);
 
-  // Default: only "Personal" space
-  if (!state.projects.length) {
-    state.projects = [
-      { id: uid(), name: 'Personal', color: '#1e88e5' }
-    ];
-    // Sample tasks in Personal
-    const pid = state.projects[0].id;
-    state.tasks = [
-      makeTask('Mi primera tarea', 'Ejemplo de tarea en click.1986', 'normal', 'pendiente', pid, daysFromNow(3)),
-    ];
-    saveState();
+  try {
+    // Load spaces
+    const { data: spaces, error: e1 } = await supa.from('spaces').select('*').order('created_at');
+    if (e1) throw e1;
+    state.projects = (spaces||[]).map(s => ({ id: s.id, name: s.name, color: s.color }));
+
+    // Load tasks
+    const { data: tasks, error: e2 } = await supa.from('tasks').select('*').order('created_at');
+    if (e2) throw e2;
+    state.tasks = (tasks||[]).map(t => ({
+      id: t.id, title: t.title, description: t.description||'',
+      status: t.status, priority: t.priority,
+      projectId: t.project_id, dueDate: t.due_date||'',
+      comments: t.comments||[], createdAt: t.created_at
+    }));
+
+    // If no spaces yet, create default Personal space
+    if (!state.projects.length) {
+      const defSpace = { id: uid(), name: 'Personal', color: '#1e88e5' };
+      await supa.from('spaces').insert({ id: defSpace.id, name: defSpace.name, color: defSpace.color });
+      state.projects = [defSpace];
+    }
+  } catch(err) {
+    console.error('Supabase load error:', err);
+    showToast('Error conectando a la nube', 'error');
   }
 
-  applyTheme(state.theme);
+  render();
+}
+
+async function saveSpace(space) {
+  await supa.from('spaces').upsert({ id: space.id, name: space.name, color: space.color });
+}
+
+async function saveTask(task) {
+  await supa.from('tasks').upsert({
+    id: task.id, title: task.title, description: task.description||'',
+    status: task.status, priority: task.priority,
+    project_id: task.projectId, due_date: task.dueDate||'',
+    comments: task.comments||[]
+  });
+}
+
+async function deleteTaskDB(taskId) {
+  await supa.from('tasks').delete().eq('id', taskId);
+}
+
+async function deleteSpaceDB(spaceId) {
+  await supa.from('spaces').delete().eq('id', spaceId);
 }
 
 function saveState() {
-  localStorage.setItem('click1986_v2', JSON.stringify({
-    projects: state.projects,
-    tasks: state.tasks,
-    theme: state.theme
-  }));
+  // Save theme preference locally
+  localStorage.setItem('click1986_theme', state.theme);
 }
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
@@ -754,7 +786,7 @@ function applyTheme(theme) {
 function toggleTheme() {
   state.theme = state.theme === 'dark' ? 'light' : 'dark';
   applyTheme(state.theme);
-  saveState();
+  localStorage.setItem('click1986_theme', state.theme);
 }
 
 // ======== VIEWS ========
@@ -1043,6 +1075,7 @@ function deleteSpace(id) {
   if (state.filterProject === id) state.filterProject = null;
   state.projects = state.projects.filter(p => p.id !== id);
   state.tasks = state.tasks.filter(t => t.projectId !== id);
+  deleteSpaceDB(id); // cascade deletes tasks too
   saveState();
   closeModal();
   render();
@@ -1090,7 +1123,7 @@ function openTaskModal(defaultStatus, defaultDate) {
   `, () => {
     const title = document.getElementById('t-title').value.trim();
     if (!title) { showToast('Ingresá un título','error'); return; }
-    state.tasks.push({
+    const newTask = {
       id: uid(), title,
       description: document.getElementById('t-desc').value,
       status: document.getElementById('t-status').value,
@@ -1099,8 +1132,9 @@ function openTaskModal(defaultStatus, defaultDate) {
       dueDate: document.getElementById('t-due').value,
       comments: [],
       createdAt: new Date().toISOString(),
-    });
-    saveState(); closeModal(); render();
+    };
+    state.tasks.push(newTask);
+    saveTask(newTask); closeModal(); render();
     showToast('✓ Tarea creada', 'success');
   }, 'Crear tarea');
 }
@@ -1198,7 +1232,7 @@ function addComment(taskId) {
   const task = state.tasks.find(t => t.id === taskId);
   if (task) {
     task.comments.push({ id: uid(), text, createdAt: new Date().toISOString() });
-    saveState();
+    saveTask(task);
     input.value = '';
     document.getElementById('comments-list').innerHTML = renderComments(task.comments);
     const titleEl = document.querySelector('.comments-title');
@@ -1210,13 +1244,13 @@ function toggleDone(taskId) {
   const task = state.tasks.find(t => t.id === taskId);
   if (task) {
     task.status = task.status === 'completado' ? 'pendiente' : 'completado';
-    saveState(); render();
+    saveTask(task); render();
   }
 }
 
 function deleteTask(taskId) {
   state.tasks = state.tasks.filter(t => t.id !== taskId);
-  saveState(); render();
+  deleteTaskDB(taskId); render();
   showToast('Tarea eliminada');
 }
 
@@ -1238,8 +1272,9 @@ function openProjectModal() {
     if (!name) { showToast('Ingresá un nombre','error'); return; }
     const selected = document.querySelector('.color-dot-pick.selected');
     const color = selected ? selected.style.background : COLORS[0];
-    state.projects.push({ id: uid(), name, color });
-    saveState(); closeModal(); render();
+    const newSpace = { id: uid(), name, color };
+    state.projects.push(newSpace);
+    saveSpace(newSpace); closeModal(); render();
     showToast('✓ Espacio creado', 'success');
   }, 'Crear espacio');
 }
@@ -1368,9 +1403,7 @@ window.enviarResumenTelegram = function() {
 }
 
 // ======== INIT ========
-loadState();
-render();
-startNotificationScheduler();
+loadState().then(() => startNotificationScheduler());
 
 // ======== SERVICE WORKER ========
 if ('serviceWorker' in navigator) {
@@ -1404,4 +1437,3 @@ window.addEventListener('beforeinstallprompt', e => {
 </script>
 </body>
 </html>
-<!-- v2 -->
