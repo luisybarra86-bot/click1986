@@ -373,6 +373,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
   <div class="topbar">
     <button class="menu-btn" onclick="toggleSidebar()">☰</button>
     <div class="topbar-title" id="view-title">Dashboard</div>
+    <div id="topbar-clock" style="font-size:11.5px;color:var(--text2);white-space:nowrap;display:flex;flex-direction:column;align-items:center;line-height:1.3;flex-shrink:0;"><span id="clock-time" style="font-weight:600;color:var(--text)"></span><span id="clock-date" style="font-size:10px;color:var(--text3)"></span></div>
     <input class="search-bar" id="search-input" placeholder="🔍 Buscar..." oninput="renderContent()">
     <div class="view-tabs">
       <div class="view-tab" id="tab-dashboard" onclick="setView('dashboard',null,this)">📊 Dash</div>
@@ -466,7 +467,7 @@ function localDateStr(offsetDays=0){
 }
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function getSearch(){return(document.getElementById('search-input')?.value||'').toLowerCase().trim();}
-function getHour(){const n=new Date();const h=n.getHours();return h<12?'Buenos días':'Buenos tardes';}
+function getHour(){const n=new Date();const h=n.getHours();return h<12?'Buenos días':h<20?'Buenas tardes':'Buenas noches';}
 function filterTasks(tasks){
   let t=tasks;
   if(state.filterProject)t=t.filter(x=>x.projectId===state.filterProject);
@@ -672,6 +673,14 @@ function startNotificationScheduler(){
 window.enviarResumenTelegram=function(){checkDueTasks('daily');showToast('📨 Enviado a Telegram','success');}
 
 /* INIT */
+function updateClock(){
+  const now=new Date();
+  const time=now.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  const date=now.toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short'});
+  const te=document.getElementById('clock-time');const de=document.getElementById('clock-date');
+  if(te)te.textContent=time;if(de)de.textContent=date;
+}
+updateClock();setInterval(updateClock,1000);
 loadState().then(()=>startNotificationScheduler());
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(e=>console.log('SW:',e));});}
 let deferredPrompt2;
