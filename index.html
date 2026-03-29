@@ -459,6 +459,11 @@ function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2
 function getProject(id){return state.projects.find(p=>p.id===id);}
 function formatDate(str,time){if(!str)return'';const d=new Date(str+'T00:00:00').toLocaleDateString('es-AR',{day:'numeric',month:'short'});return time?d+' '+time:d;}
 function isOverdue(str){if(!str)return false;return new Date(str+'T23:59:59')<new Date();}
+function localDateStr(offsetDays=0){
+  const d=new Date();
+  d.setDate(d.getDate()+offsetDays);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function getSearch(){return(document.getElementById('search-input')?.value||'').toLowerCase().trim();}
 function getHour(){const n=new Date();const h=n.getHours();return h<12?'Buenos días':'Buenos tardes';}
@@ -472,9 +477,9 @@ function filterTasks(tasks){
   if(fp)t=t.filter(x=>x.priority===fp);
   if(fs)t=t.filter(x=>x.status===fs);
   if(fd){
-    const today=new Date().toISOString().slice(0,10);
-    const tomorrow=new Date(Date.now()+86400000).toISOString().slice(0,10);
-    const weekEnd=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+    const today=localDateStr(0);
+    const tomorrow=localDateStr(1);
+    const weekEnd=localDateStr(7);
     if(fd==='overdue')t=t.filter(x=>x.dueDate&&x.dueDate<today&&x.status!=='completado');
     else if(fd==='today')t=t.filter(x=>x.dueDate===today);
     else if(fd==='tomorrow')t=t.filter(x=>x.dueDate===tomorrow);
@@ -530,9 +535,9 @@ function renderTags(tags){if(!tags||!tags.length)return'';return tags.map(tg=>`<
 
 /* DASHBOARD */
 function renderDashboard(){
-  const today=new Date().toISOString().slice(0,10);
-  const tomorrow=new Date(Date.now()+86400000).toISOString().slice(0,10);
-  const weekEnd=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+  const today=localDateStr(0);
+  const tomorrow=localDateStr(1);
+  const weekEnd=localDateStr(7);
   const all=state.tasks,active=all.filter(t=>t.status!=='completado'),done=all.filter(t=>t.status==='completado');
   const overdue=all.filter(t=>t.dueDate&&t.dueDate<today&&t.status!=='completado');
   const todayT=all.filter(t=>t.dueDate===today&&t.status!=='completado');
@@ -643,7 +648,7 @@ function showToast(msg,type=''){const el=document.createElement('div');el.classN
 async function sendTelegram(msg){try{await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:TG_CHAT,text:msg,parse_mode:'HTML'})});}catch(e){console.log('TG:',e);}}
 function addMinutes(time,mins){const[h,m]=time.split(':').map(Number);const d=new Date(2000,0,1,h,m+mins);return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');}
 function checkDueTasks(mode='daily'){
-  const now=new Date(),today=now.toISOString().slice(0,10),tomorrow=new Date(Date.now()+86400000).toISOString().slice(0,10);
+  const now=new Date(),today=localDateStr(0),tomorrow=localDateStr(1);
   const currentTime=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   if(mode==='hourly'){const soon=state.tasks.filter(t=>t.dueDate===today&&t.dueTime&&t.status!=='completado'&&t.dueTime>=currentTime&&t.dueTime<=addMinutes(currentTime,15));if(soon.length){let msg=`⏰ <b>PRÓXIMAS A VENCER</b>\n`;soon.forEach(t=>{const p=getProject(t.projectId);msg+=`• ${t.title} — ${t.dueTime}${p?' ('+p.name+')':''}\n`;});sendTelegram(msg);}return;}
   const todayT=state.tasks.filter(t=>t.dueDate===today&&t.status!=='completado');
@@ -655,14 +660,14 @@ function checkDueTasks(mode='daily'){
   if(tomorrowT.length){msg+=`🔵 <b>VENCEN MAÑANA (${tomorrowT.length})</b>\n`;tomorrowT.forEach(t=>{const p=getProject(t.projectId);msg+=`• ${t.title}${t.dueTime?' '+t.dueTime:''}${p?' — '+p.name:''}\n`;});}
   if(msg)sendTelegram(`📋 <b>click.1986 — Resumen</b>\n\n`+msg);
 }
-async function sendWeeklySummary(){const today=new Date().toISOString().slice(0,10);const weekEnd=new Date(Date.now()+7*86400000).toISOString().slice(0,10);const pending=state.tasks.filter(t=>t.status!=='completado');const dueThisWeek=pending.filter(t=>t.dueDate&&t.dueDate>=today&&t.dueDate<=weekEnd);const overdue=pending.filter(t=>t.dueDate&&t.dueDate<today);let msg=`📅 <b>click.1986 — Resumen Semanal</b>\n\n📌 Tareas activas: <b>${pending.length}</b>\n⚠️ Vencidas: <b>${overdue.length}</b>\n📆 Esta semana: <b>${dueThisWeek.length}</b>\n\n`;if(dueThisWeek.length){msg+=`<b>Esta semana:</b>\n`;dueThisWeek.forEach(t=>{const p=getProject(t.projectId);msg+=`• ${t.title} — ${formatDate(t.dueDate,t.dueTime)}${p?' ('+p.name+')':''}\n`;});}sendTelegram(msg);}
+async function sendWeeklySummary(){const today=localDateStr(0);const weekEnd=localDateStr(7);const pending=state.tasks.filter(t=>t.status!=='completado');const dueThisWeek=pending.filter(t=>t.dueDate&&t.dueDate>=today&&t.dueDate<=weekEnd);const overdue=pending.filter(t=>t.dueDate&&t.dueDate<today);let msg=`📅 <b>click.1986 — Resumen Semanal</b>\n\n📌 Tareas activas: <b>${pending.length}</b>\n⚠️ Vencidas: <b>${overdue.length}</b>\n📆 Esta semana: <b>${dueThisWeek.length}</b>\n\n`;if(dueThisWeek.length){msg+=`<b>Esta semana:</b>\n`;dueThisWeek.forEach(t=>{const p=getProject(t.projectId);msg+=`• ${t.title} — ${formatDate(t.dueDate,t.dueTime)}${p?' ('+p.name+')':''}\n`;});}sendTelegram(msg);}
 function startNotificationScheduler(){
-  const today=new Date().toISOString().slice(0,10);const last=localStorage.getItem('click1986_last_notif');
+  const today=localDateStr(0);const last=localStorage.getItem('click1986_last_notif');
   if(last!==today){setTimeout(()=>{checkDueTasks('daily');localStorage.setItem('click1986_last_notif',today);},4000);}
   const dayOfWeek=new Date().getDay();const thisWeek=new Date().toISOString().slice(0,7)+'-W'+Math.ceil(new Date().getDate()/7);const lastWeekly=localStorage.getItem('click1986_last_weekly');
   if(dayOfWeek===1&&lastWeekly!==thisWeek){setTimeout(()=>{sendWeeklySummary();localStorage.setItem('click1986_last_weekly',thisWeek);},6000);}
   setInterval(()=>{checkDueTasks('hourly');},900000);
-  setInterval(()=>{const now=new Date().toISOString().slice(0,10);const l=localStorage.getItem('click1986_last_notif');if(l!==now){checkDueTasks('daily');localStorage.setItem('click1986_last_notif',now);}},3600000);
+  setInterval(()=>{const now=localDateStr(0);const l=localStorage.getItem('click1986_last_notif');if(l!==now){checkDueTasks('daily');localStorage.setItem('click1986_last_notif',now);}},3600000);
 }
 window.enviarResumenTelegram=function(){checkDueTasks('daily');showToast('📨 Enviado a Telegram','success');}
 
