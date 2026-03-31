@@ -313,30 +313,56 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;}
 .sidebar-overlay.active{display:block;}
 @media(max-width:700px){
-  
-  .nav-sidebar{position:fixed;left:0;top:0;height:100vh;transform:translateX(-100%);transition:transform .25s;}
-  .nav-sidebar.mobile-open{transform:translateX(0);}
+  .nav-sidebar{position:fixed;left:0;top:0;height:100vh;transform:translateX(-100%);transition:transform .25s;width:280px;z-index:200;}
+  .nav-sidebar.mobile-open{transform:translateX(0);box-shadow:var(--shadow);}
   .view-tabs{display:none;}
   .search-bar{display:none;}
-  .topbar{padding:0 10px;gap:7px;}
-  .kpi-grid{grid-template-columns:repeat(3,1fr);}
-  .kanban-col{min-width:230px;max-width:230px;}
+  .topbar{padding:0 12px;gap:8px;height:52px;}
+  .topbar-title{font-size:14px;}
+  #topbar-clock{display:none;}
+  .kpi-grid{grid-template-columns:repeat(2,1fr);}
+  .kanban-board{padding:10px 12px;gap:10px;}
+  .kanban-col{min-width:255px;max-width:255px;}
+  .dash-row{flex-direction:column;}
+  .dash-card{min-width:unset;}
+  .projects-grid{grid-template-columns:1fr 1fr;}
+  .list-header-row{display:none;}
+  .list-row{grid-template-columns:20px 1fr 70px 38px;gap:8px;}
+  .list-row>div:nth-child(3){display:none;}
+  .list-row>div:nth-child(5){display:none;}
+  .filter-bar{padding:6px 12px;gap:6px;overflow-x:auto;flex-wrap:nowrap;}
+  .modal{border-radius:16px 16px 0 0;max-width:100%;position:fixed;bottom:0;left:0;right:0;max-height:90vh;}
+  .modal-task{max-width:100%;}
+  .task-meta-row{gap:8px;}
+  .form-row{grid-template-columns:1fr;}
+  .dash-view{padding:12px;}
+  .projects-view{padding:12px;}
+  .calendar-view{padding:12px;}
+  .list-view{padding:0 12px 80px;}
+}
+/* Mobile bottom nav bar */
+.mobile-nav{display:none;}
+@media(max-width:700px){
+  .mobile-nav{
+    display:flex;position:fixed;bottom:0;left:0;right:0;
+    background:var(--surface);border-top:1px solid var(--border);
+    height:56px;z-index:90;
+  }
+  .mobile-nav-item{
+    flex:1;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:2px;cursor:pointer;
+    font-size:18px;color:var(--text3);transition:all .12s;
+    border:none;background:none;
+  }
+  .mobile-nav-item.active{color:var(--accent);}
+  .mobile-nav-item span{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+  .main{padding-bottom:56px;}
+  .modal-overlay{align-items:flex-end;padding:0;}
 }
 </style>
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
-
-  <div class="i-btn active" onclick="setView('dashboard')" title="Dashboard">📊</div>
-  <div class="i-btn" onclick="setView('kanban')" title="Kanban">⬜</div>
-  <div class="i-btn" onclick="setView('list')" title="Lista">≡</div>
-  <div class="i-btn" onclick="setView('calendar')" title="Calendario">◻</div>
-  <div class="i-btn" onclick="setView('projects')" title="Espacios">⬡</div>
-  <div class="i-divider"></div>
-  <div class="i-btn" onclick="exportBackup()" title="Backup">💾</div>
-  <div class="i-btn" onclick="importBackup()" title="Importar">📂</div>
-  <div class="i-btn" onclick="toggleTheme()" id="theme-icon-btn" title="Tema">☀️</div>
-</div>
 
 <!-- NAV SIDEBAR -->
 <div class="nav-sidebar" id="nav-sidebar">
@@ -417,6 +443,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 </main>
 
 <div id="modal-container"></div>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mobile-nav">
+  <button class="mobile-nav-item" id="mob-dashboard" onclick="setView('dashboard',this)">📊<span>Inicio</span></button>
+  <button class="mobile-nav-item" id="mob-kanban" onclick="setView('kanban',this)">⬜<span>Kanban</span></button>
+  <button class="mobile-nav-item" id="mob-list" onclick="setView('list',this)">≡<span>Lista</span></button>
+  <button class="mobile-nav-item" id="mob-calendar" onclick="setView('calendar',this)">◻<span>Cal</span></button>
+  <button class="mobile-nav-item" id="mob-projects" onclick="setView('projects',this)">⬡<span>Espacios</span></button>
+</nav>
 
 <script>
 const SUPA_URL='https://ecljqfqzdatbanzvzxai.supabase.co';
@@ -513,6 +548,9 @@ function setView(view,navEl,tabEl){
   const titles={dashboard:'Dashboard',kanban:'Kanban',list:'Lista de Tareas',calendar:'Calendario',projects:'Espacios'};
   document.getElementById('view-title').textContent=titles[view]||view;
   renderContent();if(window.innerWidth<=700)closeSidebar();
+  // Sync mobile nav
+  document.querySelectorAll('.mobile-nav-item').forEach(el=>el.classList.remove('active'));
+  const mob=document.getElementById('mob-'+view);if(mob)mob.classList.add('active');
 }
 function render(){renderSidebarSpaces();renderContent();}
 function renderContent(){
