@@ -427,6 +427,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
       <option value="en progreso">En Progreso</option>
       <option value="revisión">Revisión</option>
       <option value="completado">Completado</option>
+      <option value="cancelado">Cancelado</option>
     </select>
     <select class="filter-select" id="filter-due" onchange="renderContent()">
       <option value="">Cualquier fecha</option>
@@ -460,9 +461,9 @@ const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
 const COLORS=['#e53935','#fb8c00','#f9a825','#43a047','#1e88e5','#8e24aa','#00acc1','#6d4c41','#546e7a','#ec407a'];
 const TAG_COLORS=['#7c5cbf','#e040b0','#e53935','#fb8c00','#43a047','#1e88e5','#00acc1','#ec407a'];
 const PRIORITIES=['urgent','high','normal','low'];
-const STATUSES=['pendiente','en progreso','revisión','completado'];
-const STATUS_COLORS={'pendiente':'#666','en progreso':'#1e88e5','revisión':'#f9a825','completado':'#43a047'};
-const STATUS_LABELS={'pendiente':'Pendiente','en progreso':'En Progreso','revisión':'Revisión','completado':'Completado'};
+const STATUSES=['pendiente','en progreso','revisión','completado','cancelado'];
+const STATUS_COLORS={'pendiente':'#666','en progreso':'#1e88e5','revisión':'#f9a825','completado':'#43a047','cancelado':'#e53935'};
+const STATUS_LABELS={'pendiente':'Pendiente','en progreso':'En Progreso','revisión':'Revisión','completado':'Completado','cancelado':'Cancelado'};
 const PRIORITY_LABELS={urgent:'Urgente',high:'Alta',normal:'Normal',low:'Baja'};
 const TG_TOKEN='8667108711:AAF20xY1pnOKCRsaf-OPErtmR8yRWl6lgbY';
 const TG_CHAT='5214189495';
