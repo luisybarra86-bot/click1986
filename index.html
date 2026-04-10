@@ -376,10 +376,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
     <span class="nav-section-label">Vistas</span>
   </div>
   <div class="nav-item active" id="nav-dashboard" onclick="setView('dashboard',this)"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></div>
-  <div class="nav-item" id="nav-kanban" onclick="setView('kanban',this)"><span class="nav-icon">⬜</span><span class="nav-label">Kanban</span></div>
-  <div class="nav-item" id="nav-list" onclick="setView('list',this)"><span class="nav-icon">≡</span><span class="nav-label">Lista</span></div>
-  <div class="nav-item" id="nav-calendar" onclick="setView('calendar',this)"><span class="nav-icon">◻</span><span class="nav-label">Calendario</span></div>
-  <div class="nav-item" id="nav-projects" onclick="setView('projects',this)"><span class="nav-icon">⬡</span><span class="nav-label">Espacios</span></div>
+  <div class="nav-item" id="nav-kanban" onclick="setView('kanban',this)"><span class="nav-icon">📋</span><span class="nav-label">Kanban</span></div>
+  <div class="nav-item" id="nav-list" onclick="setView('list',this)"><span class="nav-icon">📝</span><span class="nav-label">Lista</span></div>
+  <div class="nav-item" id="nav-calendar" onclick="setView('calendar',this)"><span class="nav-icon">📅</span><span class="nav-label">Calendario</span></div>
+  <div class="nav-item" id="nav-projects" onclick="setView('projects',this)"><span class="nav-icon">📁</span><span class="nav-label">Espacios</span></div>
 
   <div class="nav-section" style="margin-top:6px">
     <span class="nav-section-label">Mis espacios</span>
@@ -403,10 +403,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
     <input class="search-bar" id="search-input" placeholder="🔍 Buscar..." oninput="renderContent()">
     <div class="view-tabs">
       <div class="view-tab" id="tab-dashboard" onclick="setView('dashboard',null,this)">📊 Dash</div>
-      <div class="view-tab active" id="tab-kanban" onclick="setView('kanban',null,this)">⬜ Kanban</div>
-      <div class="view-tab" id="tab-list" onclick="setView('list',null,this)">≡ Lista</div>
-      <div class="view-tab" id="tab-calendar" onclick="setView('calendar',null,this)">◻ Cal</div>
-      <div class="view-tab" id="tab-projects" onclick="setView('projects',null,this)">⬡ Espacios</div>
+      <div class="view-tab active" id="tab-kanban" onclick="setView('kanban',null,this)">📋 Kanban</div>
+      <div class="view-tab" id="tab-list" onclick="setView('list',null,this)">📝 Lista</div>
+      <div class="view-tab" id="tab-calendar" onclick="setView('calendar',null,this)">📅 Cal</div>
+      <div class="view-tab" id="tab-projects" onclick="setView('projects',null,this)">📁 Espacios</div>
     </div>
     <div class="topbar-icon" onclick="enviarResumenTelegram()" title="Telegram">📨</div>
     <button class="btn btn-primary btn-sm" onclick="openTaskModal()">+ Tarea</button>
@@ -448,10 +448,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 <!-- MOBILE BOTTOM NAV -->
 <nav class="mobile-nav">
   <button class="mobile-nav-item" id="mob-dashboard" onclick="setView('dashboard',this)">📊<span>Inicio</span></button>
-  <button class="mobile-nav-item" id="mob-kanban" onclick="setView('kanban',this)">⬜<span>Kanban</span></button>
-  <button class="mobile-nav-item" id="mob-list" onclick="setView('list',this)">≡<span>Lista</span></button>
-  <button class="mobile-nav-item" id="mob-calendar" onclick="setView('calendar',this)">◻<span>Cal</span></button>
-  <button class="mobile-nav-item" id="mob-projects" onclick="setView('projects',this)">⬡<span>Espacios</span></button>
+  <button class="mobile-nav-item" id="mob-kanban" onclick="setView('kanban',this)">📋<span>Kanban</span></button>
+  <button class="mobile-nav-item" id="mob-list" onclick="setView('list',this)">📝<span>Lista</span></button>
+  <button class="mobile-nav-item" id="mob-calendar" onclick="setView('calendar',this)">📅<span>Cal</span></button>
+  <button class="mobile-nav-item" id="mob-projects" onclick="setView('projects',this)">📁<span>Espacios</span></button>
 </nav>
 
 <script>
@@ -469,6 +469,7 @@ const TG_TOKEN='8667108711:AAF20xY1pnOKCRsaf-OPErtmR8yRWl6lgbY';
 const TG_CHAT='5214189495';
 let state={projects:[],tasks:[],currentView:'dashboard',filterProject:null,calendarDate:new Date(),theme:'dark'};
 let dragId=null;
+let completedSectionOpen=false;
 
 async function loadState(){
   state.theme=localStorage.getItem('click1986_theme')||'dark';
@@ -498,8 +499,8 @@ function formatDate(str,time){if(!str)return'';const d=new Date(str+'T00:00:00')
 function isOverdue(str){if(!str)return false;return new Date(str+'T23:59:59')<new Date();}
 function localDateStr(offsetDays=0){
   const d=new Date();
-  d.setDate(d.getDate()+offsetDays);
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  if(offsetDays)d.setDate(d.getDate()+offsetDays);
+  return d.toLocaleDateString('sv',{timeZone:'America/Argentina/Buenos_Aires'});
 }
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function getSearch(){return(document.getElementById('search-input')?.value||'').toLowerCase().trim();}
@@ -621,7 +622,7 @@ function renderDashboard(){
 }
 
 /* KANBAN */
-function renderKanban(){const tasks=filterTasks(state.tasks);return`<div class="kanban-board">${STATUSES.map(status=>{const col=tasks.filter(t=>t.status===status);return`<div class="kanban-col" data-status="${status}" ondragover="dragOver(event)" ondrop="drop(event,this)"><div class="kanban-col-header"><div class="col-dot" style="background:${STATUS_COLORS[status]}"></div><div class="col-title">${STATUS_LABELS[status]}</div><div class="col-count">${col.length}</div></div><div class="kanban-col-body">${col.map(t=>renderTaskCard(t)).join('')}${col.length===0?'<div class="empty-state"><div style="font-size:22px;opacity:.3">○</div></div>':''}</div><button class="add-task-col-btn" onclick="openTaskModal(\'${status}\')">+ Agregar tarea</button></div>`;}).join('')}</div>`;}
+function renderKanban(){const tasks=filterTasks(state.tasks);return`<div class="kanban-board">${STATUSES.map(status=>{const col=tasks.filter(t=>t.status===status);const isArchived=status==='completado'||status==='cancelado';return`<div class="kanban-col" data-status="${status}" ondragover="dragOver(event)" ondrop="drop(event,this)" style="${isArchived?'opacity:0.75;':''}"><div class="kanban-col-header" style="${isArchived?'border-bottom:2px solid '+STATUS_COLORS[status]+';':''}"><div class="col-dot" style="background:${STATUS_COLORS[status]}"></div><div class="col-title" style="${isArchived?'color:'+STATUS_COLORS[status]+';':''}">${status==='cancelado'?'🚫 ':status==='completado'?'✅ ':''}${STATUS_LABELS[status]}</div><div class="col-count">${col.length}</div></div><div class="kanban-col-body">${col.map(t=>renderTaskCard(t)).join('')}${col.length===0?'<div class="empty-state"><div style="font-size:22px;opacity:.3">○</div></div>':''}</div><button class="add-task-col-btn" onclick="openTaskModal(\'${status}\')">+ Agregar tarea</button></div>`;}).join('')}</div>`;}
 
 function renderTaskCard(t){const proj=getProject(t.projectId);const overdue=isOverdue(t.dueDate)&&t.status!=='completado';const sub=t.subtasks||[];const doneSub=sub.filter(s=>s.done).length;const pct=sub.length?Math.round(doneSub/sub.length*100):0;const tags=t.tags||[];return`<div class="task-card" draggable="true" data-id="${t.id}" ondragstart="dragStart(event,this)" ondragend="dragEnd(this)" onclick="openTaskDetail('${t.id}')"><div class="task-card-title">${esc(t.title)}</div>${tags.length?`<div class="task-card-tags">${renderTags(tags)}</div>`:''} ${sub.length?`<div class="subtask-bar"><div style="font-size:9.5px;color:var(--text3)">${doneSub}/${sub.length} subtareas</div><div class="subtask-progress"><div class="subtask-progress-fill" style="width:${pct}%"></div></div></div>`:''}<div class="task-card-meta"><span class="priority-badge priority-${t.priority}">${PRIORITY_LABELS[t.priority]}</span>${t.dueDate?`<span class="due-badge ${overdue?'overdue':''}">📅 ${formatDate(t.dueDate,t.dueTime)}</span>`:''}${proj?`<span class="tag-badge" style="background:${proj.color}20;color:${proj.color}">${esc(proj.name)}</span>`:''} ${t.comments.length?`<span class="comment-count" style="margin-left:auto">💬 ${t.comments.length}</span>`:''}</div></div>`;}
 
@@ -631,7 +632,18 @@ function dragOver(e){e.preventDefault();e.currentTarget.closest('.kanban-col')?.
 async function drop(e,colEl){e.preventDefault();colEl.classList.remove('drag-over');const status=colEl.dataset.status;if(!dragId||!status)return;const task=state.tasks.find(t=>t.id===dragId);if(task&&task.status!==status){task.status=status;await saveTask(task);renderContent();showToast(`Movida a ${STATUS_LABELS[status]}`,'success');}dragId=null;}
 
 /* LIST */
-function renderList(){const tasks=filterTasks(state.tasks);const grouped={};STATUSES.forEach(s=>grouped[s]=[]);tasks.forEach(t=>{if(grouped[t.status])grouped[t.status].push(t);});return`<div class="list-view"><div class="list-header-row"><div></div><div class="list-header-cell">Tarea</div><div class="list-header-cell">Espacio</div><div class="list-header-cell">Fecha</div><div class="list-header-cell">Prioridad</div><div></div></div>${STATUSES.map(status=>{const col=grouped[status];return`<div class="list-group"><div class="list-group-header"><div class="col-dot" style="background:${STATUS_COLORS[status]};width:7px;height:7px;border-radius:50%;flex-shrink:0"></div><div class="list-group-title">${STATUS_LABELS[status]}</div><div class="list-group-count">${col.length}</div></div>${col.map(t=>{const proj=getProject(t.projectId);const done=t.status==='completado';const overdue=isOverdue(t.dueDate)&&!done;return`<div class="list-row" onclick="openTaskDetail('${t.id}')"><div class="list-row-check ${done?'done':''}" onclick="event.stopPropagation();toggleDone('${t.id}')">${done?'✓':''}</div><div class="list-row-title ${done?'done-text':''}">${esc(t.title)}</div><div>${proj?`<span style="background:${proj.color}20;color:${proj.color};padding:2px 7px;border-radius:4px;font-size:10.5px">${esc(proj.name)}</span>`:'-'}</div><div class="list-row-due ${overdue?'overdue':''}">${t.dueDate?formatDate(t.dueDate,t.dueTime):'-'}</div><div><span class="priority-badge priority-${t.priority}">${PRIORITY_LABELS[t.priority]}</span></div><div style="text-align:right"><button class="icon-btn" onclick="event.stopPropagation();deleteTask('${t.id}')">🗑</button></div></div>`;}).join('')}${col.length===0?`<div style="padding:7px 10px;font-size:12px;color:var(--text3)">Sin tareas</div>`:''}</div>`;}).join('')}</div>`;}
+function renderListRow(t){const proj=getProject(t.projectId);const done=t.status==='completado';const cancelled=t.status==='cancelado';const overdue=isOverdue(t.dueDate)&&!done&&!cancelled;return`<div class="list-row" onclick="openTaskDetail('${t.id}')" style="${cancelled?'opacity:0.6;':done?'opacity:0.5;':''}"><div class="list-row-check ${done?'done':''}" onclick="event.stopPropagation();toggleDone('${t.id}')">${done?'✓':cancelled?'✕':''}</div><div class="list-row-title ${done||cancelled?'done-text':''}">${esc(t.title)}</div><div>${proj?`<span style="background:${proj.color}20;color:${proj.color};padding:2px 7px;border-radius:4px;font-size:10.5px">${esc(proj.name)}</span>`:'-'}</div><div class="list-row-due ${overdue?'overdue':''}">${t.dueDate?formatDate(t.dueDate,t.dueTime):'-'}</div><div><span class="priority-badge priority-${t.priority}">${PRIORITY_LABELS[t.priority]}</span></div><div style="text-align:right"><button class="icon-btn" onclick="event.stopPropagation();deleteTask('${t.id}')">🗑</button></div></div>`;}
+function toggleCompletedSection(){completedSectionOpen=!completedSectionOpen;renderContent();}
+function renderList(){
+  const tasks=filterTasks(state.tasks);
+  const activeStatuses=['pendiente','en progreso','revisión','cancelado'];
+  const grouped={};activeStatuses.forEach(s=>grouped[s]=[]);
+  const completedTasks=[];
+  tasks.forEach(t=>{if(t.status==='completado')completedTasks.push(t);else if(grouped[t.status])grouped[t.status].push(t);});
+  const activeGroupsHtml=activeStatuses.map(status=>{const col=grouped[status];return`<div class="list-group"><div class="list-group-header"><div class="col-dot" style="background:${STATUS_COLORS[status]};width:7px;height:7px;border-radius:50%;flex-shrink:0"></div><div class="list-group-title" style="${status==='cancelado'?'color:'+STATUS_COLORS['cancelado']:''}">${status==='cancelado'?'🚫 ':''}${STATUS_LABELS[status]}</div><div class="list-group-count">${col.length}</div></div>${col.map(t=>renderListRow(t)).join('')}${col.length===0?`<div style="padding:7px 10px;font-size:12px;color:var(--text3)">Sin tareas</div>`:''}</div>`;}).join('');
+  const completedHtml=`<div class="list-group" style="margin-top:8px;border-top:2px dashed var(--border2);padding-top:10px"><div class="list-group-header" onclick="toggleCompletedSection()" style="cursor:pointer;user-select:none;background:var(--surface2);border-radius:7px;padding:8px 10px;margin-bottom:6px"><div class="col-dot" style="background:${STATUS_COLORS['completado']};width:7px;height:7px;border-radius:50%;flex-shrink:0"></div><div class="list-group-title" style="color:var(--green)">📦 Completadas</div><div class="list-group-count">${completedTasks.length}</div><span style="margin-left:auto;color:var(--text3);font-size:11px">${completedSectionOpen?'▲ Ocultar':'▼ Ver todas'}</span></div>${completedSectionOpen?completedTasks.map(t=>renderListRow(t)).join('')+(completedTasks.length===0?'<div style="padding:7px 10px;font-size:12px;color:var(--text3)">Sin tareas completadas</div>':''):''}</div>`;
+  return`<div class="list-view"><div class="list-header-row"><div></div><div class="list-header-cell">Tarea</div><div class="list-header-cell">Espacio</div><div class="list-header-cell">Fecha</div><div class="list-header-cell">Prioridad</div><div></div></div>${activeGroupsHtml}${completedHtml}</div>`;
+}
 
 /* CALENDAR */
 function renderCalendar(){const d=state.calendarDate;const year=d.getFullYear(),month=d.getMonth();const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];const DAYS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];const today=new Date();today.setHours(0,0,0,0);const firstDay=new Date(year,month,1).getDay();const daysInMonth=new Date(year,month+1,0).getDate();const daysInPrev=new Date(year,month,0).getDate();const byDate={};filterTasks(state.tasks).forEach(t=>{if(t.dueDate){byDate[t.dueDate]=byDate[t.dueDate]||[];byDate[t.dueDate].push(t);}});let cells='';for(let i=firstDay-1;i>=0;i--)cells+=`<div class="cal-day other-month"><div class="cal-day-num">${daysInPrev-i}</div></div>`;for(let day=1;day<=daysInMonth;day++){const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;const isToday=new Date(year,month,day).getTime()===today.getTime();const dt=byDate[ds]||[];cells+=`<div class="cal-day ${isToday?'today':''}" onclick="openTaskModal(null,'${ds}')"><div class="cal-day-num">${day}</div>${dt.slice(0,3).map(t=>`<div class="cal-task-chip priority-${t.priority}" onclick="event.stopPropagation();openTaskDetail('${t.id}')">${esc(t.title)}</div>`).join('')}${dt.length>3?`<div style="font-size:9px;color:var(--text3)">+${dt.length-3}</div>`:''}</div>`;}const total=Math.ceil((firstDay+daysInMonth)/7)*7;for(let i=1;i<=total-firstDay-daysInMonth;i++)cells+=`<div class="cal-day other-month"><div class="cal-day-num">${i}</div></div>`;return`<div class="calendar-view"><div class="cal-header"><button class="btn btn-ghost btn-sm" id="cal-prev">‹</button><div class="cal-month">${MONTHS[month]} ${year}</div><button class="btn btn-ghost btn-sm" id="cal-next">›</button></div><div class="cal-grid">${DAYS.map(n=>`<div class="cal-day-name">${n}</div>`).join('')}${cells}</div></div>`;}
