@@ -148,6 +148,50 @@ body[data-density="compact"]{font-size:13px;}
 .filter-select{background:var(--surface2);border:1px solid var(--border);border-radius:20px;color:var(--text2);padding:4px 11px;font-size:11.5px;font-family:var(--font-body);outline:none;cursor:pointer;transition:all .12s;}
 .filter-select:focus,.filter-select:hover{border-color:var(--accent);color:var(--text);}
 
+/* ===== SIDEBAR ICON MODE ===== */
+.sidebar-toggle{width:22px;height:22px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;transition:all .15s;color:var(--text2);flex-shrink:0;line-height:1;}
+.sidebar-toggle:hover{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
+.nav-sidebar.icon-mode{width:var(--icon-w)!important;}
+.nav-sidebar.icon-mode .nav-label,.nav-sidebar.icon-mode .nav-workspace,.nav-sidebar.icon-mode .nav-section-add,.nav-sidebar.icon-mode .space-name,.nav-sidebar.icon-mode .space-count,.nav-sidebar.icon-mode .space-actions,.nav-sidebar.icon-mode .nav-section-label{display:none!important;}
+.nav-sidebar.icon-mode .nav-header{justify-content:center;padding:11px 6px;}
+.nav-sidebar.icon-mode .nav-avatar{display:none;}
+.nav-sidebar.icon-mode .nav-item{justify-content:center;padding:8px 6px;margin:1px 4px;position:relative;}
+.nav-sidebar.icon-mode .space-item{justify-content:center;padding:8px 6px;margin:1px 4px;position:relative;}
+.nav-sidebar.icon-mode .nav-section{justify-content:center;padding:7px 4px 3px;}
+.nav-sidebar.icon-mode .nav-bottom{padding:8px 4px;}
+.nav-sidebar.icon-mode [data-label]:hover::after{content:attr(data-label);position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);background:var(--surface3);color:var(--text);font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:7px;border:1px solid var(--border);white-space:nowrap;z-index:999;pointer-events:none;box-shadow:var(--shadow);}
+
+/* ===== BREADCRUMB ===== */
+.breadcrumb-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:5px 16px;display:flex;align-items:center;gap:4px;flex-shrink:0;font-size:11.5px;overflow-x:auto;scrollbar-width:none;}
+.breadcrumb-bar::-webkit-scrollbar{display:none;}
+.bc-item{color:var(--text3);cursor:pointer;white-space:nowrap;transition:color .12s;display:inline-flex;align-items:center;gap:4px;padding:1px 3px;border-radius:4px;}
+.bc-item:hover{color:var(--accent);}
+.bc-sep{color:var(--border2);font-size:11px;flex-shrink:0;user-select:none;margin:0 1px;}
+.bc-active{color:var(--text2);font-weight:500;cursor:default;white-space:nowrap;}
+.bc-filter{display:inline-flex;align-items:center;gap:3px;background:var(--accent-soft);color:var(--accent);border:1px solid rgba(var(--accent-rgb),.3);border-radius:10px;padding:1px 8px;font-size:10.5px;font-weight:600;cursor:pointer;white-space:nowrap;transition:opacity .12s;border-color:var(--accent);}
+.bc-filter:hover{opacity:.75;}
+
+/* ===== COMMAND PALETTE ===== */
+.cmd-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:2000;display:none;align-items:flex-start;justify-content:center;padding-top:70px;backdrop-filter:blur(3px);}
+.cmd-overlay.open{display:flex;}
+.cmd-palette{background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:540px;max-width:calc(100vw - 24px);max-height:460px;display:flex;flex-direction:column;box-shadow:var(--shadow);overflow:hidden;animation:cmdIn .12s ease;}
+@keyframes cmdIn{from{opacity:0;transform:scale(.97) translateY(-6px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.cmd-top{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--border);}
+.cmd-input{flex:1;background:transparent;border:none;color:var(--text);font-size:14px;font-family:var(--font-body);outline:none;}
+.cmd-input::placeholder{color:var(--text3);}
+.cmd-esc{font-size:10px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;flex-shrink:0;cursor:pointer;}
+.cmd-results{flex:1;overflow-y:auto;padding:6px;}
+.cmd-group{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3);padding:8px 10px 3px;}
+.cmd-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .08s;color:var(--text2);}
+.cmd-item:hover,.cmd-item.sel{background:var(--accent-soft);color:var(--accent);}
+.cmd-item-ic{width:28px;height:28px;border-radius:7px;background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.cmd-item-name{font-size:13px;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cmd-item-sub{font-size:11px;color:var(--text3);white-space:nowrap;flex-shrink:0;}
+.cmd-item.sel .cmd-item-sub{color:var(--accent);opacity:.7;}
+.cmd-empty{text-align:center;padding:28px 16px;color:var(--text3);font-size:13px;}
+.cmd-footer{border-top:1px solid var(--border);padding:7px 14px;display:flex;gap:16px;font-size:10px;color:var(--text3);flex-shrink:0;}
+.cmd-k{background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:1px 4px;font-family:monospace;font-size:9px;}
+
 /* ===== CONTENT ===== */
 .content{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
 
@@ -492,17 +536,18 @@ body[data-density="compact"] .dash-card{padding:13px;}
     <div class="nav-avatar">L</div>
     <div class="nav-workspace">click.1986</div>
     <button class="theme-btn" onclick="toggleTheme()" id="theme-btn" title="Cambiar tema">L</button>
+    <button class="sidebar-toggle" id="sidebar-toggle-btn" onclick="toggleSidebarMode()" title="Colapsar sidebar">◀</button>
   </div>
 
   <div class="nav-section">
     <span class="nav-section-label">Vistas</span>
   </div>
-  <div class="nav-item active" id="nav-dashboard" onclick="setView('dashboard',this)"><span class="nav-icon ui-icon ui-icon-dashboard"></span><span class="nav-label">Dashboard</span></div>
-  <div class="nav-item" id="nav-kanban" onclick="setView('kanban',this)"><span class="nav-icon ui-icon ui-icon-kanban"></span><span class="nav-label">Kanban</span></div>
-  <div class="nav-item" id="nav-list" onclick="setView('list',this)"><span class="nav-icon ui-icon ui-icon-list"></span><span class="nav-label">Lista</span></div>
-  <div class="nav-item" id="nav-calendar" onclick="setView('calendar',this)"><span class="nav-icon ui-icon ui-icon-calendar"></span><span class="nav-label">Calendario</span></div>
-  <div class="nav-item" id="nav-projects" onclick="setView('projects',this)"><span class="nav-icon ui-icon ui-icon-folder"></span><span class="nav-label">Espacios</span></div>
-  <div class="nav-item" id="nav-settings" onclick="setView('settings',this)"><span class="nav-icon ui-icon ui-icon-settings"></span><span class="nav-label">Configuración</span></div>
+  <div class="nav-item active" id="nav-dashboard" data-label="Dashboard" onclick="setView('dashboard',this)"><span class="nav-icon ui-icon ui-icon-dashboard"></span><span class="nav-label">Dashboard</span></div>
+  <div class="nav-item" id="nav-kanban" data-label="Kanban" onclick="setView('kanban',this)"><span class="nav-icon ui-icon ui-icon-kanban"></span><span class="nav-label">Kanban</span></div>
+  <div class="nav-item" id="nav-list" data-label="Lista" onclick="setView('list',this)"><span class="nav-icon ui-icon ui-icon-list"></span><span class="nav-label">Lista</span></div>
+  <div class="nav-item" id="nav-calendar" data-label="Calendario" onclick="setView('calendar',this)"><span class="nav-icon ui-icon ui-icon-calendar"></span><span class="nav-label">Calendario</span></div>
+  <div class="nav-item" id="nav-projects" data-label="Espacios" onclick="setView('projects',this)"><span class="nav-icon ui-icon ui-icon-folder"></span><span class="nav-label">Espacios</span></div>
+  <div class="nav-item" id="nav-settings" data-label="Configuración" onclick="setView('settings',this)"><span class="nav-icon ui-icon ui-icon-settings"></span><span class="nav-label">Configuración</span></div>
 
   <div class="nav-section" style="margin-top:6px">
     <span class="nav-section-label">Mis espacios</span>
@@ -511,8 +556,8 @@ body[data-density="compact"] .dash-card{padding:13px;}
   <div id="sidebar-spaces"></div>
 
   <div class="nav-bottom">
-    <div class="nav-item" onclick="exportBackup()"><span class="nav-icon ui-icon ui-icon-save"></span><span class="nav-label">Exportar backup</span></div>
-    <div class="nav-item" onclick="importBackup()"><span class="nav-icon ui-icon ui-icon-upload"></span><span class="nav-label">Importar backup</span></div>
+    <div class="nav-item" data-label="Exportar backup" onclick="exportBackup()"><span class="nav-icon ui-icon ui-icon-save"></span><span class="nav-label">Exportar backup</span></div>
+    <div class="nav-item" data-label="Importar backup" onclick="importBackup()"><span class="nav-icon ui-icon ui-icon-upload"></span><span class="nav-label">Importar backup</span></div>
     <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(event)">
   </div>
 </div>
@@ -535,6 +580,8 @@ body[data-density="compact"] .dash-card{padding:13px;}
     <div class="topbar-icon" onclick="enviarResumenTelegram()" title="Telegram"><span class="ui-icon ui-icon-bell"></span></div>
     <button class="btn btn-primary btn-sm" onclick="openTaskModal()"><span class="ui-icon ui-icon-plus" style="width:12px;height:12px;vertical-align:-2px"></span> Tarea</button>
   </div>
+
+  <div id="breadcrumb-bar" class="breadcrumb-bar"></div>
 
   <div id="filter-bar" style="display:none" class="filter-bar">
     <span class="filter-label">Filtrar:</span>
@@ -568,6 +615,23 @@ body[data-density="compact"] .dash-card{padding:13px;}
 </main>
 
 <div id="modal-container"></div>
+
+<!-- COMMAND PALETTE -->
+<div class="cmd-overlay" id="cmd-overlay" onclick="if(event.target===this)closeCmdPalette()">
+  <div class="cmd-palette">
+    <div class="cmd-top">
+      <span class="ui-icon ui-icon-search" style="color:var(--text3);flex-shrink:0"></span>
+      <input class="cmd-input" id="cmd-input" placeholder="Buscar tareas, espacios, vistas..." oninput="renderCmdResults(this.value)" onkeydown="handleCmdKey(event)" autocomplete="off">
+      <span class="cmd-esc" onclick="closeCmdPalette()">Esc</span>
+    </div>
+    <div class="cmd-results" id="cmd-results"></div>
+    <div class="cmd-footer">
+      <span class="cmd-hint"><span class="cmd-k">↑↓</span> Navegar</span>
+      <span class="cmd-hint"><span class="cmd-k">↵</span> Abrir</span>
+      <span class="cmd-hint"><span class="cmd-k">Esc</span> Cerrar</span>
+    </div>
+  </div>
+</div>
 
 <!-- MOBILE BOTTOM NAV -->
 <nav class="mobile-nav">
@@ -673,9 +737,77 @@ function saveSettings(){
 function toggleSidebar(){
   const sb=document.getElementById('nav-sidebar');const ov=document.getElementById('sidebar-overlay');
   if(window.innerWidth<=700){sb.classList.toggle('mobile-open');ov.classList.toggle('active');}
-  else{sb.classList.toggle('collapsed');}
+  else{toggleSidebarMode();}
+}
+function toggleSidebarMode(){
+  const sb=document.getElementById('nav-sidebar');
+  sb.classList.toggle('icon-mode');
+  const btn=document.getElementById('sidebar-toggle-btn');
+  if(btn)btn.textContent=sb.classList.contains('icon-mode')?'▶':'◀';
+  localStorage.setItem('click1986_sidebar_icon',sb.classList.contains('icon-mode')?'1':'0');
 }
 function closeSidebar(){document.getElementById('nav-sidebar').classList.remove('mobile-open');document.getElementById('sidebar-overlay').classList.remove('active');}
+
+/* ===== BREADCRUMB ===== */
+function renderBreadcrumb(){
+  const bar=document.getElementById('breadcrumb-bar');if(!bar)return;
+  const VIEW_NAMES={dashboard:'Dashboard',kanban:'Kanban',list:'Lista',calendar:'Calendario',projects:'Espacios',settings:'Configuración'};
+  const PRIO_LABELS={urgent:'Urgente',high:'Alta',normal:'Normal',low:'Baja'};
+  const DUE_L={overdue:'Vencidas',today:'Hoy',tomorrow:'Mañana',week:'Esta semana',nodate:'Sin fecha'};
+  const STS_L={'pendiente':'Pendiente','en progreso':'En Progreso','revisión':'Revisión','completado':'Completado','cancelado':'Cancelado'};
+  let parts=[];
+  const space=state.filterProject?state.projects.find(p=>p.id===state.filterProject):null;
+  if(space){parts.push(`<span class="bc-item" onclick="filterBySpace(null)"><span style="width:7px;height:7px;border-radius:50%;background:${space.color};display:inline-block;flex-shrink:0"></span>${esc(space.name)}</span>`);}
+  else{parts.push(`<span class="bc-item" onclick="state.filterProject=null;renderContent()">Todos</span>`);}
+  parts.push(`<span class="bc-sep">›</span>`);
+  parts.push(`<span class="bc-active">${VIEW_NAMES[state.currentView]||state.currentView}</span>`);
+  const fp=document.getElementById('filter-priority')?.value;
+  const fs=document.getElementById('filter-status')?.value;
+  const fd=document.getElementById('filter-due')?.value;
+  if(fp){parts.push(`<span class="bc-sep">›</span><span class="bc-filter" onclick="document.getElementById('filter-priority').value='';renderContent()">Prioridad: ${PRIO_LABELS[fp]||fp} ✕</span>`);}
+  if(fs){parts.push(`<span class="bc-sep">›</span><span class="bc-filter" onclick="document.getElementById('filter-status').value='';renderContent()">Estado: ${STS_L[fs]||fs} ✕</span>`);}
+  if(fd){parts.push(`<span class="bc-sep">›</span><span class="bc-filter" onclick="document.getElementById('filter-due').value='';renderContent()">Fecha: ${DUE_L[fd]||fd} ✕</span>`);}
+  bar.innerHTML=parts.join('');
+}
+
+/* ===== COMMAND PALETTE ===== */
+let _cmdIdx=-1,_cmdItems=[];
+function openCmdPalette(){
+  const ov=document.getElementById('cmd-overlay');ov.classList.add('open');
+  const inp=document.getElementById('cmd-input');inp.value='';inp.focus();
+  _cmdIdx=-1;renderCmdResults('');
+}
+function closeCmdPalette(){document.getElementById('cmd-overlay').classList.remove('open');}
+function renderCmdResults(q){
+  const low=q.toLowerCase().trim();_cmdItems=[];
+  const VIEWS=[{id:'dashboard',label:'Dashboard',icon:'dashboard'},{id:'kanban',label:'Kanban',icon:'kanban'},{id:'list',label:'Lista',icon:'list'},{id:'calendar',label:'Calendario',icon:'calendar'},{id:'projects',label:'Espacios',icon:'folder'},{id:'settings',label:'Configuración',icon:'settings'}];
+  const vistas=VIEWS.filter(v=>!low||v.label.toLowerCase().includes(low));
+  const espacios=state.projects.filter(p=>!low||p.name.toLowerCase().includes(low));
+  const tareas=low?state.tasks.filter(t=>t.title.toLowerCase().includes(low)||(t.description||'').toLowerCase().includes(low)).slice(0,8):[];
+  let html='';
+  if(vistas.length){html+=`<div class="cmd-group">Vistas</div>`;vistas.forEach(v=>{const idx=_cmdItems.length;_cmdItems.push({type:'view',id:v.id});html+=`<div class="cmd-item" onclick="selectCmdItem(${idx})"><div class="cmd-item-ic"><span class="ui-icon ui-icon-${v.icon}"></span></div><div class="cmd-item-name">${v.label}</div><div class="cmd-item-sub">Vista</div></div>`;});}
+  if(espacios.length){html+=`<div class="cmd-group">Espacios</div>`;espacios.forEach(p=>{const idx=_cmdItems.length;_cmdItems.push({type:'space',id:p.id});html+=`<div class="cmd-item" onclick="selectCmdItem(${idx})"><div class="cmd-item-ic"><span style="width:10px;height:10px;border-radius:50%;background:${p.color};display:block;margin:auto"></span></div><div class="cmd-item-name">${esc(p.name)}</div><div class="cmd-item-sub">Espacio</div></div>`;});}
+  if(tareas.length){html+=`<div class="cmd-group">Tareas</div>`;tareas.forEach(t=>{const idx=_cmdItems.length;_cmdItems.push({type:'task',id:t.id});html+=`<div class="cmd-item" onclick="selectCmdItem(${idx})"><div class="cmd-item-ic"><span class="ui-icon ui-icon-check" style="color:${STATUS_COLORS[t.status]||'var(--accent)'}"></span></div><div class="cmd-item-name">${esc(t.title)}</div><div class="cmd-item-sub">${STATUS_LABELS[t.status]||''}</div></div>`;});}
+  if(!html)html=`<div class="cmd-empty">${low?`Sin resultados para "<b>${esc(q)}</b>"`:'Escribí para buscar...'}</div>`;
+  document.getElementById('cmd-results').innerHTML=html;_cmdIdx=-1;
+}
+function updateCmdSel(){
+  document.querySelectorAll('.cmd-item').forEach((el,i)=>{el.classList.toggle('sel',i===_cmdIdx);if(i===_cmdIdx)el.scrollIntoView({block:'nearest'});});
+}
+function handleCmdKey(e){
+  const total=document.querySelectorAll('.cmd-item').length;
+  if(e.key==='ArrowDown'){e.preventDefault();_cmdIdx=Math.min(_cmdIdx+1,total-1);updateCmdSel();}
+  else if(e.key==='ArrowUp'){e.preventDefault();_cmdIdx=Math.max(_cmdIdx-1,0);updateCmdSel();}
+  else if(e.key==='Enter'){e.preventDefault();selectCmdItem(_cmdIdx<0?0:_cmdIdx);}
+  else if(e.key==='Escape'){closeCmdPalette();}
+}
+function selectCmdItem(idx){
+  if(idx<0||idx>=_cmdItems.length)return;
+  const item=_cmdItems[idx];closeCmdPalette();
+  if(item.type==='view')setView(item.id);
+  else if(item.type==='space'){state.filterProject=item.id;renderContent();}
+  else if(item.type==='task')openTaskDetail(item.id);
+}
 
 function setView(view,navEl,tabEl){
   state.currentView=view;state.filterProject=null;
@@ -693,6 +825,7 @@ function setView(view,navEl,tabEl){
 function render(){renderSidebarSpaces();renderContent();}
 function renderContent(){
   renderSidebarSpaces();
+  renderBreadcrumb();
   const c=document.getElementById('main-content');
   const fb=document.getElementById('filter-bar');
   if(fb)fb.style.display=['kanban','list'].includes(state.currentView)?'flex':'none';
@@ -707,7 +840,7 @@ function renderContent(){
 function renderSidebarSpaces(){
   const el=document.getElementById('sidebar-spaces');if(!el)return;
   const counts={};state.tasks.forEach(t=>{if(t.status!=='completado')counts[t.projectId]=(counts[t.projectId]||0)+1;});
-  el.innerHTML=state.projects.map(p=>`<div class="space-item ${state.filterProject===p.id?'active':''}" onclick="filterBySpace('${p.id}')"><div class="space-dot" style="background:${p.color}"></div><span class="space-name">${esc(p.name)}</span><span class="space-count">${counts[p.id]||''}</span><div class="space-actions"><button class="space-act-btn" onclick="event.stopPropagation();openEditSpaceModal('${p.id}')" title="Editar">${uiIcon('edit')}</button><button class="space-act-btn del" onclick="event.stopPropagation();confirmDeleteSpace('${p.id}')" title="Eliminar">x</button></div></div>`).join('');
+  el.innerHTML=state.projects.map(p=>`<div class="space-item ${state.filterProject===p.id?'active':''}" data-label="${esc(p.name)}" onclick="filterBySpace('${p.id}')"><div class="space-dot" style="background:${p.color}"></div><span class="space-name">${esc(p.name)}</span><span class="space-count">${counts[p.id]||''}</span><div class="space-actions"><button class="space-act-btn" onclick="event.stopPropagation();openEditSpaceModal('${p.id}')" title="Editar">${uiIcon('edit')}</button><button class="space-act-btn del" onclick="event.stopPropagation();confirmDeleteSpace('${p.id}')" title="Eliminar">x</button></div></div>`).join('');
 }
 function filterBySpace(id){state.filterProject=state.filterProject===id?null:id;renderContent();}
 function renderTags(tags){if(!tags||!tags.length)return'';return tags.map(tg=>`<span class="tag-badge" style="background:${tg.color}22;color:${tg.color}">${esc(tg.name)}</span>`).join('');}
@@ -1089,6 +1222,16 @@ function updateClock(){
 }
 updateClock();setInterval(updateClock,1000);
 loadState().then(()=>startNotificationScheduler());
+// Ctrl+K / Cmd+K → command palette
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();openCmdPalette();}
+  else if(e.key==='Escape'){closeCmdPalette();}
+});
+// Restaurar sidebar icon mode
+if(localStorage.getItem('click1986_sidebar_icon')==='1'){
+  const sb=document.getElementById('nav-sidebar');
+  if(sb){sb.classList.add('icon-mode');const btn=document.getElementById('sidebar-toggle-btn');if(btn)btn.textContent='▶';}
+}
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(e=>console.log('SW:',e));});}
 let deferredPrompt2;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt2=e;const topbar=document.querySelector('.topbar');if(topbar&&!document.getElementById('install-btn')){const btn=document.createElement('button');btn.id='install-btn';btn.className='btn btn-ghost btn-sm';btn.style.cssText='border-color:var(--accent);color:var(--accent)';btn.innerHTML='⬇';btn.onclick=()=>{deferredPrompt2.prompt();deferredPrompt2.userChoice.then(()=>{deferredPrompt2=null;btn.remove();});};topbar.insertBefore(btn,topbar.querySelector('.btn-primary'));}});
