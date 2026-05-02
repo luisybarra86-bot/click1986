@@ -1153,13 +1153,15 @@ function showToast(msg,type=''){const el=document.createElement('div');el.classN
 /* TELEGRAM */
 async function sendTelegram(msg){try{await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:TG_CHAT,text:msg,parse_mode:'HTML'})});}catch(e){console.log('TG:',e);}}
 function addMinutes(time,mins){const[h,m]=time.split(':').map(Number);const d=new Date(2000,0,1,h,m+mins);return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');}
+function normDueDate(d){if(!d)return'';if(d.length<=10)return d;return new Date(d).toLocaleDateString('sv',{timeZone:'America/Argentina/Buenos_Aires'});}
 function checkDueTasks(mode='daily'){
   const now=new Date(),today=localDateStr(0),tomorrow=localDateStr(1);
-  const currentTime=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
-  if(mode==='hourly'){const soon=state.tasks.filter(t=>t.dueDate===today&&t.dueTime&&t.status!=='completado'&&t.dueTime>=currentTime&&t.dueTime<=addMinutes(currentTime,15));if(soon.length){let msg=`⏰ <b>PRÓXIMAS A VENCER</b>\n`;soon.forEach(t=>{const p=getProject(t.projectId);msg+=`• ${t.title} — ${t.dueTime}${p?' ('+p.name+')':''}\n`;});sendTelegram(msg);}return;}
-  const todayT=state.tasks.filter(t=>t.dueDate===today&&t.status!=='completado');
-  const tomorrowT=state.tasks.filter(t=>t.dueDate===tomorrow&&t.status!=='completado');
-  const overdueT=state.tasks.filter(t=>t.dueDate&&t.dueDate<today&&t.status!=='completado');
+  const argNow=new Date(now.toLocaleString('en-US',{timeZone:'America/Argentina/Buenos_Aires'}));
+  const currentTime=argNow.getHours().toString().padStart(2,'0')+':'+argNow.getMinutes().toString().padStart(2,'0');
+  if(mode==='hourly'){const soon=state.tasks.filter(t=>{const dd=normDueDate(t.dueDate);return dd===today&&t.dueTime&&t.status!=='completado'&&t.dueTime>=currentTime&&t.dueTime<=addMinutes(currentTime,15);});if(soon.length){let msg=`⏰ <b>PRÓXIMAS A VENCER</b>\n`;soon.forEach(t=>{const p=getProject(t.projectId);msg+=`• ${t.title} — ${t.dueTime}${p?' ('+p.name+')':''}\n`;});sendTelegram(msg);}return;}
+  const todayT=state.tasks.filter(t=>normDueDate(t.dueDate)===today&&t.status!=='completado');
+  const tomorrowT=state.tasks.filter(t=>normDueDate(t.dueDate)===tomorrow&&t.status!=='completado');
+  const overdueT=state.tasks.filter(t=>t.dueDate&&normDueDate(t.dueDate)<today&&t.status!=='completado');
   let msg='';
   if(overdueT.length){msg+=`🔴 <b>VENCIDAS (${overdueT.length})</b>\n`;overdueT.forEach(t=>{const p=getProject(t.projectId);msg+=`• ${t.title}${p?' — '+p.name:''}\n`;});msg+='\n';}
   if(todayT.length){msg+=`🟡 <b>VENCEN HOY (${todayT.length})</b>\n`;todayT.forEach(t=>{const p=getProject(t.projectId);msg+=`• ${t.title}${t.dueTime?' '+t.dueTime:''}${p?' — '+p.name:''}\n`;});msg+='\n';}
@@ -1169,9 +1171,9 @@ function checkDueTasks(mode='daily'){
 async function sendWeeklySummary(){const today=localDateStr(0);const weekEnd=localDateStr(7);const pending=state.tasks.filter(t=>t.status!=='completado');const dueThisWeek=pending.filter(t=>t.dueDate&&t.dueDate>=today&&t.dueDate<=weekEnd);const overdue=pending.filter(t=>t.dueDate&&t.dueDate<today);let msg=`📅 <b>click.1986 — Resumen Semanal</b>\n\n📌 Tareas activas: <b>${pending.length}</b>\n⚠️ Vencidas: <b>${overdue.length}</b>\n📆 Esta semana: <b>${dueThisWeek.length}</b>\n\n`;if(dueThisWeek.length){msg+=`<b>Esta semana:</b>\n`;dueThisWeek.forEach(t=>{const p=getProject(t.projectId);msg+=`• ${t.title} — ${formatDate(t.dueDate,t.dueTime)}${p?' ('+p.name+')':''}\n`;});}sendTelegram(msg);}
 function startNotificationScheduler(){
   const today=localDateStr(0);const last=localStorage.getItem('click1986_last_notif');
-  if(last!==today){setTimeout(()=>{checkDueTasks('daily');localStorage.setItem('click1986_last_notif',today);},4000);}
+  if(last!==today){localStorage.setItem('click1986_last_notif',today);setTimeout(()=>{checkDueTasks('daily');},4000);}
   const dayOfWeek=new Date().getDay();const thisWeek=new Date().toISOString().slice(0,7)+'-W'+Math.ceil(new Date().getDate()/7);const lastWeekly=localStorage.getItem('click1986_last_weekly');
-  if(dayOfWeek===1&&lastWeekly!==thisWeek){setTimeout(()=>{sendWeeklySummary();localStorage.setItem('click1986_last_weekly',thisWeek);},6000);}
+  if(dayOfWeek===1&&lastWeekly!==thisWeek){localStorage.setItem('click1986_last_weekly',thisWeek);setTimeout(()=>{sendWeeklySummary();},6000);}
   setInterval(()=>{checkDueTasks('hourly');},900000);
   setInterval(()=>{const now=localDateStr(0);const l=localStorage.getItem('click1986_last_notif');if(l!==now){checkDueTasks('daily');localStorage.setItem('click1986_last_notif',now);}},3600000);
 }
