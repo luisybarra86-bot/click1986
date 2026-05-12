@@ -236,6 +236,21 @@ body[data-density="compact"]{font-size:13px;}
 #chart-progress{height:140px!important;max-height:140px;}
 .chart-fallback{display:flex;flex-direction:column;gap:9px;padding-top:4px;}
 
+/* ===== DASHBOARD ENHANCEMENTS ===== */
+.dash-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+.dash-hero .dash-welcome{margin-bottom:4px;}
+.dash-hero-sum{font-size:13.5px;color:var(--text2);line-height:1.5;max-width:560px;}
+.kpi-c-accent::before{background:linear-gradient(180deg,var(--accent),var(--accent-hover))!important;}
+.kpi-c-green{background:linear-gradient(180deg,rgba(34,197,94,0.07),var(--surface))!important;}.kpi-c-green::before{background:linear-gradient(180deg,var(--green),#16a34a)!important;}
+.kpi-c-red{background:linear-gradient(180deg,rgba(244,63,94,0.09),var(--surface))!important;}.kpi-c-red::before{background:linear-gradient(180deg,var(--red),#be123c)!important;}
+.kpi-c-yellow{background:linear-gradient(180deg,rgba(245,158,11,0.08),var(--surface))!important;}.kpi-c-yellow::before{background:linear-gradient(180deg,var(--yellow),#b45309)!important;}
+.kpi-c-blue::before{background:linear-gradient(180deg,var(--blue),#0284c7)!important;}
+.kpi.clickable{cursor:pointer;}
+.dash-notes-card{background:linear-gradient(180deg,color-mix(in srgb,var(--surface) 97%,white),var(--surface));border:1px solid var(--border);border-radius:12px;padding:16px;flex:1;min-width:220px;box-shadow:var(--shadow-sm);}
+.dash-notes-ta{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-size:13px;font-family:var(--font-body);min-height:110px;resize:vertical;outline:none;transition:border-color .12s;line-height:1.6;}
+.dash-notes-ta:focus{border-color:var(--accent);}
+.dash-notes-saved{font-size:10.5px;color:var(--text3);margin-top:5px;text-align:right;}
+
 /* ===== KANBAN ===== */
 .kanban-board{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;padding:16px;align-items:start;overflow-x:auto;scroll-snap-type:x mandatory;}
 .kanban-col{min-width:0;background:var(--surface2);border-radius:12px;border:1px solid var(--border);display:flex;flex-direction:column;max-height:calc(100vh - 134px);box-shadow:var(--card-shadow);}
@@ -655,8 +670,8 @@ const STATUSES=['pendiente','en progreso','revisión','completado','cancelado'];
 const STATUS_COLORS={'pendiente':'#666','en progreso':'#1e88e5','revisión':'#f9a825','completado':'#43a047','cancelado':'#e53935'};
 const STATUS_LABELS={'pendiente':'Pendiente','en progreso':'En Progreso','revisión':'Revisión','completado':'Completado','cancelado':'Cancelado'};
 const PRIORITY_LABELS={urgent:'Urgente',high:'Alta',normal:'Normal',low:'Baja'};
-const TG_TOKEN='8667108711:AAF20xY1pnOKCRsaf-OPErtmR8yRWl6lgbY';
-const TG_CHAT='5214189495';
+let TG_TOKEN=localStorage.getItem('click1986_tg_token')||'';
+let TG_CHAT=localStorage.getItem('click1986_tg_chat')||'';
 let state={projects:[],tasks:[],currentView:'dashboard',filterProject:null,calendarDate:new Date(),theme:'dark',userName:'Luis',density:'comfortable'};
 let dragId=null;
 let completedSectionOpen=false;
@@ -674,7 +689,7 @@ async function loadState(){
     state.projects=(sp||[]).map(s=>({id:s.id,name:s.name,color:s.color}));
     const{data:tk,error:e2}=await supa.from('tasks').select('*').order('created_at');
     if(e2)throw e2;
-    state.tasks=(tk||[]).map(t=>({id:t.id,title:t.title,description:t.description||'',status:t.status,priority:t.priority,projectId:t.project_id,dueDate:t.due_date||'',dueTime:t.due_time||'',comments:t.comments||[],subtasks:t.subtasks||[],tags:t.tags||[],createdAt:t.created_at}));
+    state.tasks=(tk||[]).map(t=>({id:t.id,title:t.title,description:t.description||'',status:t.status,priority:t.priority,projectId:t.project_id,dueDate:t.due_date||'',dueTime:t.due_time||'',comments:t.comments||[],subtasks:t.subtasks||[],tags:t.tags||[],createdAt:t.created_at,completedAt:t.completed_at||''}));
     if(!state.projects.length){const def={id:uid(),name:'Personal',color:'#0891b2'};await supa.from('spaces').insert({id:def.id,name:def.name,color:def.color});state.projects=[def];}
   }catch(err){console.error(err);showToast('Error conectando a la nube','error');}
   showLoading(false);render();
@@ -682,7 +697,7 @@ async function loadState(){
 function showLoading(s){let el=document.getElementById('loading-overlay');if(s&&!el){el=document.createElement('div');el.id='loading-overlay';el.innerHTML=`<div style="position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9998;gap:20px"><div style="font-family:Space Grotesk,sans-serif;font-size:19px;font-weight:700;background:linear-gradient(135deg,#22d3ee,#f97316,#84cc16);-webkit-background-clip:text;-webkit-text-fill-color:transparent">click.1986</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:320px">${Array(6).fill(0).map((_,i)=>`<div class="skeleton skeleton-kpi" style="animation-delay:${i*0.1}s"></div>`).join('')}</div><div style="font-size:12px;color:var(--text3);animation:pulse 1.5s infinite">Cargando tus datos...</div></div>`;document.body.appendChild(el);}else if(!s&&el)el.remove();}
 
 async function saveSpace(s){await supa.from('spaces').upsert({id:s.id,name:s.name,color:s.color});}
-async function saveTask(t){await supa.from('tasks').upsert({id:t.id,title:t.title,description:t.description||'',status:t.status,priority:t.priority,project_id:t.projectId,due_date:t.dueDate||'',due_time:t.dueTime||'',comments:t.comments||[],subtasks:t.subtasks||[],tags:t.tags||[]});}
+async function saveTask(t){await supa.from('tasks').upsert({id:t.id,title:t.title,description:t.description||'',status:t.status,priority:t.priority,project_id:t.projectId,due_date:t.dueDate||'',due_time:t.dueTime||'',comments:t.comments||[],subtasks:t.subtasks||[],tags:t.tags||[],completed_at:t.completedAt||null});}
 async function deleteTaskDB(id){await supa.from('tasks').delete().eq('id',id);}
 async function deleteSpaceDB(id){await supa.from('spaces').delete().eq('id',id);}
 
@@ -732,6 +747,10 @@ function saveSettings(){
   const name=(document.getElementById('settings-name')?.value||'Luis').trim()||'Luis';
   state.userName=name;
   localStorage.setItem('click1986_user_name',name);
+  const tok=(document.getElementById('settings-tg-token')?.value||'').trim();
+  const chat=(document.getElementById('settings-tg-chat')?.value||'').trim();
+  if(tok){TG_TOKEN=tok;localStorage.setItem('click1986_tg_token',tok);}
+  if(chat){TG_CHAT=chat;localStorage.setItem('click1986_tg_chat',chat);}
   showToast('Configuración guardada','success');
   renderContent();
 }
@@ -953,8 +972,15 @@ function renderDashboard(){
         ${done.length?done.slice(-5).reverse().map(t=>{const p=getProject(t.projectId);return`<div class="dash-task-row">${uiIcon('check')}<span class="dash-task-name" onclick="openTaskDetail('${t.id}')">${esc(t.title)}</span>${p?`<span class="tag-badge" style="background:${p.color}20;color:${p.color}">${esc(p.name)}</span>`:''}</div>`;}).join(''):`<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin tareas completadas aún.</div>`}
       </div>
     </div>
+    <div class="dash-row">
+      <div class="dash-notes-card">
+        <div class="dash-card-title">${uiIcon('edit')} Notas rápidas</div>
+        <textarea class="dash-notes-ta" id="dash-notes-ta" placeholder="Apuntá ideas, pendientes, recordatorios...">${esc(localStorage.getItem('click1986_notes')||'')}</textarea>
+        <div class="dash-notes-saved" id="dash-notes-saved"></div>
+      </div>
+    </div>
   </div>`;
-  setTimeout(()=>initDashboardCharts(byP,bySpace,all,done),50);
+  setTimeout(()=>{initDashboardCharts(byP,bySpace,all,done);initDashboardNotes();},50);
   return html;
 }
 
@@ -987,20 +1013,37 @@ function initDashboardCharts(byP,bySpace,all,done){
 
   // Chart Progreso semanal
   const days=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  const today=new Date();
+  const todayWk=new Date();
   const weekData=[];
   for(let i=6;i>=0;i--){
-    const d=new Date(today);
+    const d=new Date(todayWk);
     d.setDate(d.getDate()-i);
-    const dayTasks=all.filter(t=>{
-      const td=t.createdAt?new Date(t.createdAt):null;
-      return td&&td.toDateString()===d.toDateString();
-    });
-    const doneTasks=dayTasks.filter(t=>t.status==='completado').length;
-    weekData.push({day:days[d.getDay()],done:doneTasks,total:dayTasks.length});
+    const dateStr=d.toLocaleDateString('sv',{timeZone:'America/Argentina/Buenos_Aires'});
+    const completedToday=all.filter(t=>{
+      if(!t.completedAt)return false;
+      return new Date(t.completedAt).toLocaleDateString('sv',{timeZone:'America/Argentina/Buenos_Aires'})===dateStr;
+    }).length;
+    const createdToday=all.filter(t=>{
+      if(!t.createdAt)return false;
+      return new Date(t.createdAt).toLocaleDateString('sv',{timeZone:'America/Argentina/Buenos_Aires'})===dateStr;
+    }).length;
+    weekData.push({day:days[d.getDay()],completed:completedToday,created:createdToday});
   }
   showChart('chart-progress','progress-fallback');
-  chartProgress=new Chart(ctxPro,{type:'bar',data:{labels:weekData.map(d=>d.day),datasets:[{label:'Completadas',data:weekData.map(d=>d.done),backgroundColor:'#22c55e',borderRadius:4,barThickness:20}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:true,grid:{display:false},ticks:{color:'#72839a',font:{size:10}}},y:{display:true,beginAtZero:true,grid:{color:'#23334f'},ticks:{color:'#72839a',font:{size:10}}}},animation:{delay:200}}});
+  chartProgress=new Chart(ctxPro,{type:'bar',data:{labels:weekData.map(d=>d.day),datasets:[{label:'Creadas',data:weekData.map(d=>d.created),backgroundColor:'rgba(56,189,248,0.45)',borderRadius:4,barThickness:16},{label:'Completadas',data:weekData.map(d=>d.completed),backgroundColor:'#22c55e',borderRadius:4,barThickness:16}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#72839a',font:{size:10},boxWidth:10}}},scales:{x:{display:true,grid:{display:false},ticks:{color:'#72839a',font:{size:10}}},y:{display:true,beginAtZero:true,grid:{color:'#23334f'},ticks:{color:'#72839a',font:{size:10},stepSize:1}}},animation:{delay:200}}});
+}
+
+function initDashboardNotes(){
+  const ta=document.getElementById('dash-notes-ta');if(!ta)return;
+  let notesTimer;
+  ta.addEventListener('input',()=>{
+    clearTimeout(notesTimer);
+    const saved=document.getElementById('dash-notes-saved');if(saved)saved.textContent='';
+    notesTimer=setTimeout(()=>{
+      localStorage.setItem('click1986_notes',ta.value);
+      const saved2=document.getElementById('dash-notes-saved');if(saved2)saved2.textContent='✓ Guardado';
+    },800);
+  });
 }
 
 /* KANBAN */
@@ -1064,6 +1107,19 @@ function renderSettings(){
         </div>
       </div>
       <div class="settings-card">
+        <div class="settings-title">Telegram</div>
+        <div class="settings-sub">Token del bot y chat ID para recibir notificaciones de tareas vencidas.</div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">Bot Token</label>
+          <input class="form-input" id="settings-tg-token" value="${esc(TG_TOKEN)}" placeholder="123456:ABC...">
+        </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <label class="form-label">Chat ID</label>
+          <input class="form-input" id="settings-tg-chat" value="${esc(TG_CHAT)}" placeholder="5214189495">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="saveSettings()">Guardar</button>
+      </div>
+      <div class="settings-card">
         <div class="settings-title">Datos</div>
         <div class="settings-sub">Accesos rápidos para respaldar o recuperar tu información local del proyecto.</div>
         <div class="setting-row">
@@ -1084,13 +1140,13 @@ function openEditSpaceModal(id){const proj=getProject(id);if(!proj)return;create
 
 /* DELETE SPACE */
 function confirmDeleteSpace(id){const proj=getProject(id);if(!proj)return;const tc=state.tasks.filter(t=>t.projectId===id).length;document.getElementById('modal-container').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:380px"><div class="modal-header"><div class="modal-title">Eliminar espacio</div><button class="modal-close" onclick="closeModal()">✕</button></div><div class="modal-body"><p style="font-size:13px;line-height:1.6;color:var(--text2)">¿Eliminar "${esc(proj.name)}"?${tc>0?` Se eliminarán ${tc} tarea${tc!==1?'s':''}.`:''}</p>${tc>0?`<p style="font-size:11px;color:#ef5350;margin-top:4px">Esta acción no se puede deshacer.</p>`:''}</div><div class="modal-footer"><button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancelar</button><button class="btn btn-danger btn-sm" onclick="deleteSpace('${id}')">Eliminar</button></div></div></div>`;}
-async function deleteSpace(id){if(state.filterProject===id)state.filterProject=null;state.projects=state.projects.filter(p=>p.id!==id);state.tasks=state.tasks.filter(t=>t.projectId!==id);await deleteSpaceDB(id);closeModal();render();showToast('Espacio eliminado');}
+async function deleteSpace(id){if(state.filterProject===id)state.filterProject=null;await supa.from('tasks').delete().eq('project_id',id);state.projects=state.projects.filter(p=>p.id!==id);state.tasks=state.tasks.filter(t=>t.projectId!==id);await deleteSpaceDB(id);closeModal();render();showToast('Espacio eliminado');}
 
 /* TASK MODAL */
 function openTaskModal(defaultStatus,defaultDate){const dp=state.filterProject||(state.projects[0]?.id||'');createModal('Nueva Tarea',`<div class="form-group"><label class="form-label">Título *</label><input class="form-input" id="t-title" placeholder="¿Qué hay que hacer?" autofocus></div><div class="form-group"><label class="form-label">Descripción</label><textarea class="form-textarea" id="t-desc" placeholder="Detalles opcionales..."></textarea></div><div class="form-row"><div class="form-group"><label class="form-label">Estado</label><select class="form-select" id="t-status">${STATUSES.map(s=>`<option value="${s}" ${s===(defaultStatus||'pendiente')?'selected':''}>${STATUS_LABELS[s]}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Prioridad</label><select class="form-select" id="t-priority">${PRIORITIES.map(p=>`<option value="${p}">${PRIORITY_LABELS[p]}</option>`).join('')}</select></div></div><div class="form-row"><div class="form-group"><label class="form-label">Espacio</label><select class="form-select" id="t-project">${state.projects.map(p=>`<option value="${p.id}" ${p.id===dp?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Fecha límite</label><input class="form-input" type="date" id="t-due" value="${defaultDate||''}"></div></div><div class="form-row"><div class="form-group"><label class="form-label">Hora límite</label><input class="form-input" type="time" id="t-time"></div><div></div></div>`,async()=>{const title=document.getElementById('t-title').value.trim();if(!title){showToast('Ingresá un título','error');return;}const newTask={id:uid(),title,description:document.getElementById('t-desc').value,status:document.getElementById('t-status').value,priority:document.getElementById('t-priority').value,projectId:document.getElementById('t-project').value,dueDate:document.getElementById('t-due').value,dueTime:document.getElementById('t-time')?.value||'',comments:[],subtasks:[],tags:[],createdAt:new Date().toISOString()};state.tasks.push(newTask);await saveTask(newTask);closeModal();render();showToast('✓ Tarea creada','success');},'Crear tarea');}
 
 /* TASK DETAIL */
-function openTaskDetail(taskId){const task=state.tasks.find(t=>t.id===taskId);if(!task)return;const tags=task.tags||[];const subs=task.subtasks||[];document.getElementById('modal-container').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this){saveTaskDetail('${taskId}');closeModal()}"><div class="modal modal-task"><div class="modal-header"><input class="task-detail-title" id="dt-title" value="${esc(task.title)}" placeholder="Título"><button class="modal-close" onclick="saveTaskDetail('${taskId}');closeModal()">✕</button></div><div class="modal-body"><div class="task-meta-row"><div class="task-meta-item"><span class="task-meta-label">Estado</span><select class="form-select" style="padding:5px 8px;font-size:11.5px" id="dt-status">${STATUSES.map(s=>`<option value="${s}" ${task.status===s?'selected':''}>${STATUS_LABELS[s]}</option>`).join('')}</select></div><div class="task-meta-item"><span class="task-meta-label">Prioridad</span><select class="form-select" style="padding:5px 8px;font-size:11.5px" id="dt-priority">${PRIORITIES.map(p=>`<option value="${p}" ${task.priority===p?'selected':''}>${PRIORITY_LABELS[p]}</option>`).join('')}</select></div><div class="task-meta-item"><span class="task-meta-label">Espacio</span><select class="form-select" style="padding:5px 8px;font-size:11.5px" id="dt-project">${state.projects.map(p=>`<option value="${p.id}" ${task.projectId===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div><div class="task-meta-item"><span class="task-meta-label">Fecha</span><input type="date" class="form-input" style="padding:5px 8px;font-size:11.5px;width:auto" id="dt-due" value="${task.dueDate||''}"></div><div class="task-meta-item"><span class="task-meta-label">Hora</span><input type="time" class="form-input" style="padding:5px 8px;font-size:11.5px;width:auto" id="dt-time" value="${task.dueTime||''}"></div></div><div class="form-group"><label class="form-label">Etiquetas</label><div class="tags-editor" id="tags-editor">${tags.map((tg,i)=>`<span class="tag-pill" style="background:${tg.color}22;color:${tg.color}">${esc(tg.name)}<button class="tag-x" onclick="removeTag('${taskId}',${i})">×</button></span>`).join('')}<button class="tag-add-btn" onclick="addTagPrompt('${taskId}')">+ Etiqueta</button></div></div><div class="form-group"><label class="form-label">Descripción</label><textarea class="task-description" id="dt-desc">${esc(task.description||'')}</textarea></div><div><div class="form-label" style="margin-bottom:7px">Subtareas</div><div id="subtasks-list">${renderSubtasksList(subs,taskId)}</div><div class="add-subtask-row"><span style="font-size:12px;color:var(--text3)">+</span><input class="add-subtask-input" id="new-subtask" placeholder="Agregar subtarea..."><button class="btn btn-ghost btn-sm" onclick="addSubtask('${taskId}')">Agregar</button></div></div><div><div class="comments-title">💬 Comentarios <span style="color:var(--text3)" id="comment-count">(${task.comments.length})</span></div><div id="comments-list">${renderComments(task.comments)}</div><div class="comment-input-row"><textarea class="comment-input" id="new-comment" placeholder="Escribí un comentario..." rows="1"></textarea><button class="btn btn-primary btn-sm" onclick="addComment('${taskId}')">Enviar</button></div></div></div><div class="modal-footer"><button class="btn btn-danger btn-sm" onclick="deleteTask('${taskId}');closeModal()">🗑 Eliminar</button><button class="btn btn-ghost btn-sm" onclick="saveTaskDetail('${taskId}');closeModal()">Guardar y cerrar</button></div></div></div>`;
+function openTaskDetail(taskId){const task=state.tasks.find(t=>t.id===taskId);if(!task)return;const tags=task.tags||[];const subs=task.subtasks||[];document.getElementById('modal-container').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this){saveTaskDetail('${taskId}');closeModal()}"><div class="modal modal-task"><div class="modal-header"><input class="task-detail-title" id="dt-title" value="${esc(task.title)}" placeholder="Título"><button class="modal-close" onclick="saveTaskDetail('${taskId}');closeModal()">✕</button></div><div class="modal-body"><div class="task-meta-row"><div class="task-meta-item"><span class="task-meta-label">Estado</span><select class="form-select" style="padding:5px 8px;font-size:11.5px" id="dt-status">${STATUSES.map(s=>`<option value="${s}" ${task.status===s?'selected':''}>${STATUS_LABELS[s]}</option>`).join('')}</select></div><div class="task-meta-item"><span class="task-meta-label">Prioridad</span><select class="form-select" style="padding:5px 8px;font-size:11.5px" id="dt-priority">${PRIORITIES.map(p=>`<option value="${p}" ${task.priority===p?'selected':''}>${PRIORITY_LABELS[p]}</option>`).join('')}</select></div><div class="task-meta-item"><span class="task-meta-label">Espacio</span><select class="form-select" style="padding:5px 8px;font-size:11.5px" id="dt-project">${state.projects.map(p=>`<option value="${p.id}" ${task.projectId===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div><div class="task-meta-item"><span class="task-meta-label">Fecha</span><input type="date" class="form-input" style="padding:5px 8px;font-size:11.5px;width:auto" id="dt-due" value="${task.dueDate||''}"></div><div class="task-meta-item"><span class="task-meta-label">Hora</span><input type="time" class="form-input" style="padding:5px 8px;font-size:11.5px;width:auto" id="dt-time" value="${task.dueTime||''}"></div></div><div class="form-group"><label class="form-label">Etiquetas</label><div class="tags-editor" id="tags-editor">${tags.map((tg,i)=>`<span class="tag-pill" style="background:${tg.color}22;color:${tg.color}">${esc(tg.name)}<button class="tag-x" onclick="removeTag('${taskId}',${i})">×</button></span>`).join('')}<button class="tag-add-btn" onclick="addTagPrompt('${taskId}')">+ Etiqueta</button></div></div><div class="form-group"><label class="form-label">Descripción</label><textarea class="task-description" id="dt-desc">${esc(task.description||'')}</textarea></div><div><div class="form-label" style="margin-bottom:7px">Subtareas</div><div id="subtasks-list">${renderSubtasksList(subs,taskId)}</div><div class="add-subtask-row"><span style="font-size:12px;color:var(--text3)">+</span><input class="add-subtask-input" id="new-subtask" placeholder="Agregar subtarea..."><button class="btn btn-ghost btn-sm" onclick="addSubtask('${taskId}')">Agregar</button></div></div><div><div class="comments-title">💬 Comentarios <span style="color:var(--text3)" id="comment-count">(${task.comments.length})</span></div><div id="comments-list">${renderComments(task.comments)}</div><div class="comment-input-row"><textarea class="comment-input" id="new-comment" placeholder="Escribí un comentario..." rows="1"></textarea><button class="btn btn-primary btn-sm" onclick="addComment('${taskId}')">Enviar</button></div></div></div><div class="modal-footer"><button class="btn btn-danger btn-sm" onclick="confirmDeleteTask('${taskId}')">🗑 Eliminar</button><button class="btn btn-ghost btn-sm" onclick="saveTaskDetail('${taskId}');closeModal()">Guardar y cerrar</button></div></div></div>`;
 setTimeout(()=>{document.getElementById('new-subtask')?.addEventListener('keydown',e=>{if(e.key==='Enter')addSubtask(taskId);});},50);}
 
 function renderSubtasksList(subs,taskId){if(!subs.length)return`<div style="font-size:11.5px;color:var(--text3);padding:4px 0">Sin subtareas aún.</div>`;return subs.map((s,i)=>`<div class="subtask-item"><div class="subtask-check ${s.done?'done':''}" onclick="toggleSubtask('${taskId}',${i})">${s.done?'✓':''}</div><span class="subtask-text ${s.done?'done-text':''}">${esc(s.text)}</span><button class="subtask-del" onclick="removeSubtask('${taskId}',${i})">✕</button></div>`).join('');}
@@ -1105,7 +1161,7 @@ function refreshTagsEditor(task,taskId){const editor=document.getElementById('ta
 
 function renderComments(comments){if(!comments.length)return`<div style="font-size:11.5px;color:var(--text3);padding:5px 0">Sin comentarios aún.</div>`;return comments.map(c=>`<div class="comment-item"><div class="comment-avatar">L</div><div class="comment-bubble"><div class="comment-meta">${new Date(c.createdAt).toLocaleString('es-AR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div><div class="comment-text">${esc(c.text)}</div></div></div>`).join('');}
 async function addComment(taskId){const input=document.getElementById('new-comment');const text=input.value.trim();if(!text)return;const task=state.tasks.find(t=>t.id===taskId);if(!task)return;task.comments.push({id:uid(),text,createdAt:new Date().toISOString()});await saveTask(task);input.value='';document.getElementById('comments-list').innerHTML=renderComments(task.comments);const cc=document.getElementById('comment-count');if(cc)cc.textContent=`(${task.comments.length})`;}
-async function saveTaskDetail(taskId){const task=state.tasks.find(t=>t.id===taskId);if(!task)return;const title=document.getElementById('dt-title')?.value?.trim();if(title)task.title=title;task.status=document.getElementById('dt-status')?.value||task.status;task.priority=document.getElementById('dt-priority')?.value||task.priority;task.projectId=document.getElementById('dt-project')?.value||task.projectId;task.dueDate=document.getElementById('dt-due')?.value||'';task.dueTime=document.getElementById('dt-time')?.value||'';task.description=document.getElementById('dt-desc')?.value||'';await saveTask(task);render();}
+async function saveTaskDetail(taskId){const task=state.tasks.find(t=>t.id===taskId);if(!task)return;const title=document.getElementById('dt-title')?.value?.trim();if(title)task.title=title;const prevStatus=task.status;task.status=document.getElementById('dt-status')?.value||task.status;if(task.status==='completado'&&prevStatus!=='completado')task.completedAt=new Date().toISOString();else if(task.status!=='completado')task.completedAt='';task.priority=document.getElementById('dt-priority')?.value||task.priority;task.projectId=document.getElementById('dt-project')?.value||task.projectId;task.dueDate=document.getElementById('dt-due')?.value||'';task.dueTime=document.getElementById('dt-time')?.value||'';task.description=document.getElementById('dt-desc')?.value||'';await saveTask(task);render();}
 // Confetti effect
 function createConfetti(x,y){
   const colors=['#e53935','#fb8c00','#f9a825','#43a047','#1e88e5','#8e24aa','#ec407a'];
@@ -1126,6 +1182,8 @@ async function toggleDone(taskId,e){
   if(!task)return;
   const wasPending=task.status!=='completado';
   task.status=wasPending?'completado':'pendiente';
+  if(wasPending)task.completedAt=new Date().toISOString();
+  else task.completedAt='';
   await saveTask(task);
   render();
   if(wasPending){
@@ -1134,6 +1192,7 @@ async function toggleDone(taskId,e){
     showToast('✓ Tarea completada','success');
   }
 }
+function confirmDeleteTask(taskId){const task=state.tasks.find(t=>t.id===taskId);if(!task)return;const tm=document.createElement('div');tm.id='confirm-del-modal';tm.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1100;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px)';tm.innerHTML=`<div style="background:var(--surface);border-radius:12px;padding:18px;width:100%;max-width:320px;border:1px solid var(--border2);box-shadow:var(--shadow)"><div style="font-family:Space Grotesk,sans-serif;font-weight:700;font-size:14px;margin-bottom:8px">Eliminar tarea</div><p style="font-size:12.5px;color:var(--text2);line-height:1.5;margin-bottom:16px">¿Eliminar "<b>${esc(task.title)}</b>"? Esta acción no se puede deshacer.</p><div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-ghost btn-sm" onclick="document.getElementById('confirm-del-modal').remove()">Cancelar</button><button class="btn btn-danger btn-sm" onclick="document.getElementById('confirm-del-modal').remove();deleteTask('${taskId}');closeModal()">Eliminar</button></div></div>`;document.body.appendChild(tm);}
 async function deleteTask(taskId){state.tasks=state.tasks.filter(t=>t.id!==taskId);await deleteTaskDB(taskId);render();showToast('Tarea eliminada');}
 
 /* PROJECT MODAL */
@@ -1184,9 +1243,11 @@ let taskHammerInstances=new Map();
 function initSwipeGestures(){
   if(typeof Hammer==='undefined')return;
   if(window.innerWidth>700)return;
+  taskHammerInstances.forEach(h=>h.destroy());
+  taskHammerInstances.clear();
   document.querySelectorAll('.task-card,.list-row').forEach(el=>{
     const id=el.dataset?.id||el.getAttribute('data-id');
-    if(!id||taskHammerInstances.has(id))return;
+    if(!id)return;
     const hammer=new Hammer(el);
     hammer.on('panright',e=>{
       if(el.classList.contains('list-row')){
