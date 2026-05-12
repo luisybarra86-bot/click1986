@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es" data-theme="dark">
 <head>
 <meta charset="UTF-8">
@@ -484,6 +484,35 @@ body[data-density="compact"] .dash-card{padding:13px;}
 .toast.error{border-left:3px solid var(--red);}
 .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:130px;color:var(--text3);gap:5px;}
 
+/* ===== DASHBOARD PRO ===== */
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;}
+@keyframes livePulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,0.5);}60%{box-shadow:0 0 0 6px rgba(34,197,94,0);}}
+.live-dot{animation:livePulse 2.2s infinite;}
+.status-strip{display:flex;align-items:stretch;background:var(--surface2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;flex-wrap:wrap;}
+.status-item{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 16px;flex:1;min-width:72px;border-right:1px solid var(--border);gap:3px;}
+.status-item:last-child{border-right:none;}
+.status-item-val{font-size:20px;font-weight:800;font-family:var(--font-display);line-height:1;}
+.status-item-lbl{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--text3);}
+.status-progress-bar{flex:2.5;padding:12px 18px;display:flex;flex-direction:column;justify-content:center;gap:5px;}
+.kpi-pro{background:linear-gradient(160deg,var(--surface2) 0%,var(--surface) 100%);border:1px solid var(--border);border-radius:14px;padding:16px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;transition:all .2s;position:relative;overflow:hidden;}
+.kpi-pro.clickable{cursor:pointer;}
+.kpi-pro.clickable:hover{border-color:var(--border2);transform:translateY(-3px);box-shadow:var(--shadow);}
+.kpi-ring{position:relative;width:58px;height:58px;}
+.kpi-ring svg{width:58px;height:58px;}
+.kpi-ring-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;font-family:var(--font-display);line-height:1;}
+.kpi-pro-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--text3);text-align:center;}
+.dash-section-hd{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.dash-section-hd::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent);}
+.timeline-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.timeline-row:last-child{border-bottom:none;}
+.tl-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.tl-title{font-size:12.5px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;display:block;}
+.tl-title:hover{color:var(--accent);}
+.tl-meta{font-size:10px;color:var(--text3);margin-top:3px;display:flex;align-items:center;gap:5px;}
+.tl-badge{font-size:9.5px;padding:2px 9px;border-radius:8px;font-weight:700;white-space:nowrap;flex-shrink:0;align-self:flex-start;margin-top:3px;}
+@media(max-width:700px){.status-strip{border-radius:10px;}.status-item{padding:10px 12px;min-width:60px;}.status-item-val{font-size:17px;}.status-progress-bar{flex:none;width:100%;border-top:1px solid var(--border);border-right:none;}.kpi-grid{grid-template-columns:repeat(3,1fr)!important;}.kpi-pro{padding:12px 8px;}.kpi-ring{width:48px;height:48px;}.kpi-ring svg{width:48px;height:48px;}.kpi-ring-num{font-size:13px;}}
+
+/* ===== MOBILE ===== */
 /* MOBILE */
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;}
 .sidebar-overlay.active{display:block;}
@@ -890,9 +919,7 @@ function quickPriorityFilter(value){
 /* DASHBOARD */
 let chartPriority=null,chartSpace=null,chartProgress=null;
 function renderDashboard(){
-  const today=localDateStr(0);
-  const tomorrow=localDateStr(1);
-  const weekEnd=localDateStr(7);
+  const today=localDateStr(0),tomorrow=localDateStr(1),weekEnd=localDateStr(7);
   const all=state.tasks,active=all.filter(t=>t.status!=='completado'),done=all.filter(t=>t.status==='completado');
   const overdue=all.filter(t=>t.dueDate&&t.dueDate<today&&t.status!=='completado');
   const todayT=all.filter(t=>t.dueDate===today&&t.status!=='completado');
@@ -904,83 +931,63 @@ function renderDashboard(){
   const tomorrowT=all.filter(t=>t.dueDate===tomorrow&&t.status!=='completado');
   const urgentT=active.filter(t=>t.priority==='urgent');
   const noDateT=active.filter(t=>!t.dueDate);
-  const upcoming=[...overdue.slice(0,2),...todayT.slice(0,2),...tomorrowT.slice(0,2)].slice(0,5);
+  const upcoming=[...overdue.slice(0,2),...todayT.slice(0,2),...tomorrowT.slice(0,2)].filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i).slice(0,6);
   const important=[...urgentT,...overdue,...todayT].filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i).slice(0,6);
+  const R=24,C=+(2*Math.PI*R).toFixed(2);
+  function ring(p2,color,num,label,fn){const off=+(C*(1-Math.min(p2,100)/100)).toFixed(2);return`<div class="kpi-pro${fn?' clickable':''}"${fn?` onclick="${fn}"`:''}><div class="kpi-ring"><svg width="58" height="58" viewBox="0 0 58 58"><circle cx="29" cy="29" r="${R}" stroke="var(--surface3)" stroke-width="3.5" fill="none"/><circle cx="29" cy="29" r="${R}" stroke="${color}" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-dasharray="${C}" class="kpi-ring-fill" data-offset="${off}" transform="rotate(-90 29 29)" style="stroke-dashoffset:${C};transition:stroke-dashoffset 1s ease .1s"/></svg><div class="kpi-ring-num" style="color:${color}">${num}</div></div><div class="kpi-pro-label">${label}</div></div>`;}
+  const aPct=all.length?Math.round(active.length/all.length*100):0;
+  const ovPct=active.length?Math.round(overdue.length/active.length*100):0;
+  const tdPct=active.length?Math.round(todayT.length/active.length*100):0;
+  const wkPct=active.length?Math.round(weekT.length/active.length*100):0;
+  const urPct=active.length?Math.round(urgentT.length/active.length*100):0;
   const html=`<div class="dash-view animate-fade-in">
-    <div class="dash-welcome">${getHour()}, <span class="grad">${esc(state.userName)}</span></div>
-    <div class="kpi-grid">
-      <div class="kpi animate-scale-in"><div class="kpi-num" style="color:var(--accent)">${active.length}</div><div class="kpi-label">Activas</div></div>
-      <div class="kpi animate-scale-in" style="animation-delay:.05s"><div class="kpi-num" style="color:var(--green)">${done.length}</div><div class="kpi-label">Completadas</div></div>
-      <div class="kpi animate-scale-in" style="animation-delay:.1s"><div class="kpi-num" style="color:var(--red)">${overdue.length}</div><div class="kpi-label">Vencidas</div></div>
-      <div class="kpi animate-scale-in" style="animation-delay:.15s"><div class="kpi-num" style="color:var(--yellow)">${todayT.length}</div><div class="kpi-label">Hoy</div></div>
-      <div class="kpi animate-scale-in" style="animation-delay:.2s"><div class="kpi-num" style="color:var(--blue)">${weekT.length}</div><div class="kpi-label">Esta semana</div></div>
-      <div class="kpi animate-scale-in" style="animation-delay:.25s"><div class="kpi-num" style="color:var(--text3)">${pct}%</div><div class="kpi-label">Progreso</div></div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px;flex-wrap:wrap">
+      <div><div class="dash-welcome" style="margin-bottom:4px">${getHour()}, <span class="grad">${esc(state.userName)}</span></div><div style="font-size:12.5px;color:var(--text2)">${active.length} tareas activas${overdue.length?` · <span style="color:var(--red);font-weight:600">${overdue.length} vencidas</span>`:''}${todayT.length?` · <span style="color:var(--yellow);font-weight:600">${todayT.length} para hoy</span>`:''}</div></div>
+      <div style="display:flex;align-items:center;gap:7px;background:color-mix(in srgb,var(--green) 8%,var(--surface2));border:1px solid color-mix(in srgb,var(--green) 25%,var(--border));border-radius:20px;padding:6px 14px;font-size:11.5px;color:var(--text2);flex-shrink:0"><div class="live-dot"></div><span style="font-weight:600">Sistema activo</span></div>
     </div>
-    <div class="dash-focus-grid">
-      <div class="dash-focus-card" onclick="quickDueFilter('overdue')">
-        <div class="dash-focus-top">${uiIcon('alert')} Vencidas</div>
-        <div class="dash-focus-num" style="color:var(--red)">${overdue.length}</div>
-        <div class="dash-focus-copy">Tareas que necesitan decisión ahora.</div>
-      </div>
-      <div class="dash-focus-card" onclick="quickDueFilter('today')">
-        <div class="dash-focus-top">${uiIcon('clock')} Para hoy</div>
-        <div class="dash-focus-num" style="color:var(--yellow)">${todayT.length}</div>
-        <div class="dash-focus-copy">Lo importante antes de cerrar el día.</div>
-      </div>
-      <div class="dash-focus-card" onclick="quickPriorityFilter('urgent')">
-        <div class="dash-focus-top">${uiIcon('spark')} Urgentes</div>
-        <div class="dash-focus-num" style="color:var(--accent)">${urgentT.length}</div>
-        <div class="dash-focus-copy">${noDateT.length} activas siguen sin fecha.</div>
-      </div>
+    <div class="status-strip">
+      <div class="status-item"><div class="status-item-val" style="color:var(--accent)">${active.length}</div><div class="status-item-lbl">Activas</div></div>
+      <div class="status-item"><div class="status-item-val" style="color:var(--green)">${done.length}</div><div class="status-item-lbl">Completadas</div></div>
+      <div class="status-item"><div class="status-item-val" style="color:${overdue.length?'var(--red)':'var(--text3)'}">${overdue.length}</div><div class="status-item-lbl">Vencidas</div></div>
+      <div class="status-item"><div class="status-item-val" style="color:var(--yellow)">${todayT.length}</div><div class="status-item-lbl">Para hoy</div></div>
+      <div class="status-progress-bar"><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:3px"></div></div><span style="font-size:13px;font-weight:800;font-family:var(--font-display);color:var(--text);white-space:nowrap">${pct}%</span></div><div class="status-item-lbl" style="margin-top:4px">Progreso global · ${all.length} tareas en total</div></div>
     </div>
+    <div class="dash-section-hd">Métricas clave</div>
+    <div class="kpi-grid" style="grid-template-columns:repeat(6,minmax(90px,1fr));gap:12px;margin-bottom:24px">
+      ${ring(aPct,'var(--accent)',active.length,'Activas','')}
+      ${ring(pct,'var(--green)',done.length,'Completadas','')}
+      ${ring(ovPct,'var(--red)',overdue.length,'Vencidas',"quickDueFilter('overdue')")}
+      ${ring(tdPct,'var(--yellow)',todayT.length,'Para hoy',"quickDueFilter('today')")}
+      ${ring(wkPct,'var(--blue)',weekT.length,'Esta semana',"quickDueFilter('week')")}
+      ${ring(urPct,'#f97316',urgentT.length,'Urgentes',"quickPriorityFilter('urgent')")}
+    </div>
+    <div class="dash-section-hd">Estado de atención</div>
+    <div class="dash-focus-grid" style="margin-bottom:24px">
+      <div class="dash-focus-card" onclick="quickDueFilter('overdue')" style="${overdue.length?'border-color:rgba(244,63,94,0.35);background:linear-gradient(135deg,rgba(244,63,94,0.08),var(--surface2))':''}"><div class="dash-focus-top">${uiIcon('alert')} Vencidas</div><div class="dash-focus-num" style="color:var(--red)">${overdue.length}</div><div class="dash-focus-copy">${overdue.length?'Necesitan decisión ahora.':'Sin vencidas. Al día.'}</div></div>
+      <div class="dash-focus-card" onclick="quickDueFilter('today')" style="${todayT.length?'border-color:rgba(245,158,11,0.35);background:linear-gradient(135deg,rgba(245,158,11,0.08),var(--surface2))':''}"><div class="dash-focus-top">${uiIcon('clock')} Para hoy</div><div class="dash-focus-num" style="color:var(--yellow)">${todayT.length}</div><div class="dash-focus-copy">Lo importante antes de cerrar el día.</div></div>
+      <div class="dash-focus-card" onclick="quickPriorityFilter('urgent')" style="${urgentT.length?'border-color:rgba(249,115,22,0.35);background:linear-gradient(135deg,rgba(249,115,22,0.08),var(--surface2))':''}"><div class="dash-focus-top">${uiIcon('spark')} Urgentes</div><div class="dash-focus-num" style="color:#f97316">${urgentT.length}</div><div class="dash-focus-copy">${noDateT.length} activas sin fecha asignada.</div></div>
+    </div>
+    <div class="dash-section-hd">Actividad</div>
+    <div class="dash-row" style="margin-bottom:24px">
+      <div class="dash-card animate-fade-in" style="flex:1.3"><div class="dash-card-title">${uiIcon('clock')} Próximas a vencer</div>${upcoming.length?upcoming.map(t=>{const p=getProject(t.projectId);const isOv=t.dueDate<today,isTd=t.dueDate===today,isTmw=t.dueDate===tomorrow;const dc=isOv?'var(--red)':isTd?'var(--yellow)':'var(--blue)';const tb=isOv?'rgba(244,63,94,0.15)':isTd?'rgba(245,158,11,0.15)':'rgba(56,189,248,0.12)';const lbl=isOv?'Vencida':isTd?'Hoy':isTmw?'Mañana':formatDate(t.dueDate,t.dueTime);return`<div class="timeline-row"><div class="tl-dot" style="background:${dc}"></div><div style="flex:1;min-width:0"><div class="tl-title" onclick="openTaskDetail('${t.id}')">${esc(t.title)}</div><div class="tl-meta">${p?`<span style="width:5px;height:5px;border-radius:50%;background:${p.color};display:inline-block"></span><span>${esc(p.name)}</span>`:''}</div></div><div class="tl-badge" style="background:${tb};color:${dc}">${lbl}</div></div>`;}).join(''):`<div class="empty-state" style="height:80px">${uiIcon('check')}<span>Todo al día</span></div>`}</div>
+      <div class="dash-card animate-fade-in" style="animation-delay:.08s"><div class="dash-card-title">${uiIcon('dashboard')} Por prioridad</div><canvas class="dash-chart" id="chart-priority" height="180"></canvas><div class="chart-fallback" id="priority-fallback">${[['urgent','Urgente','#f43f5e'],['high','Alta','#f97316'],['normal','Normal','#22d3ee'],['low','Baja','#94a3b8']].map(([k,l,c])=>{const cnt=byP[k];const pp=active.length?Math.round(cnt/active.length*100):0;return`<div class="bar-row"><span class="bar-lbl">${l}</span><div class="dash-bar"><div class="dash-bar-fill" style="width:${pp}%;background:${c}"></div></div><span class="bar-val">${cnt}</span></div>`;}).join('')}</div></div>
+      <div class="dash-card animate-fade-in" style="animation-delay:.16s"><div class="dash-card-title">${uiIcon('folder')} Por espacio</div><canvas class="dash-chart" id="chart-space" height="180"></canvas><div class="chart-fallback" id="space-fallback">${bySpace.length?bySpace.map(s=>`<div class="bar-row"><span class="bar-lbl">${esc(s.name)}</span><div class="dash-bar"><div class="dash-bar-fill" style="width:${Math.round(s.count/maxSp*100)}%;background:${s.color}"></div></div><span class="bar-val">${s.count}</span></div>`).join(''):`<div style="font-size:12px;color:var(--text3)">Sin tareas activas</div>`}</div></div>
+    </div>
+    <div class="dash-section-hd">Seguimiento</div>
+    <div class="dash-row" style="margin-bottom:24px">
+      <div class="dash-card"><div class="dash-card-title">${uiIcon('spark')} En foco</div>${important.length?`<div class="dash-mini-list">${important.map(t=>{const p=getProject(t.projectId);const c=t.priority==='urgent'?'var(--red)':t.dueDate&&t.dueDate<today?'var(--red)':p?.color||'var(--accent)';return`<div class="dash-mini-item" onclick="openTaskDetail('${t.id}')"><span class="dash-mini-dot" style="background:${c}"></span><span class="dash-mini-title">${esc(t.title)}</span><span class="dash-mini-meta">${t.dueDate?formatDate(t.dueDate,t.dueTime):PRIORITY_LABELS[t.priority]}</span></div>`;}).join('')}</div>`:`<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin urgencias por ahora.</div>`}</div>
+      <div class="dash-card"><div class="dash-card-title">${uiIcon('check')} Completadas recientes</div>${done.length?done.slice(-5).reverse().map(t=>{const p=getProject(t.projectId);return`<div class="dash-task-row">${uiIcon('check')}<span class="dash-task-name" onclick="openTaskDetail('${t.id}')">${esc(t.title)}</span>${p?`<span class="tag-badge" style="background:${p.color}20;color:${p.color}">${esc(p.name)}</span>`:''}</div>`;}).join(''):`<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin tareas completadas aún.</div>`}</div>
+    </div>
+    <div class="dash-section-hd">Progreso semanal</div>
+    <div class="dash-row" style="margin-bottom:24px">
+      <div class="dash-card animate-fade-in"><canvas class="dash-chart" id="chart-progress" height="140"></canvas><div class="chart-fallback" id="progress-fallback"><div class="bar-row"><span class="bar-lbl">Global</span><div class="dash-bar"><div class="dash-bar-fill" style="width:${pct}%;background:linear-gradient(90deg,var(--accent),var(--green))"></div></div><span class="bar-val">${pct}%</span></div></div></div>
+    </div>
+    <div class="dash-section-hd">Notas</div>
     <div class="dash-row">
-      <div class="dash-card animate-fade-in">
-        <div class="dash-card-title">${uiIcon('clock')} Próximas a vencer</div>
-        ${upcoming.length?upcoming.map(t=>{const p=getProject(t.projectId);const isOv=t.dueDate<today;return`<div class="dash-task-row"><span class="dash-mini-dot" style="background:${isOv?'var(--red)':'var(--yellow)'}"></span><span class="dash-task-name" onclick="openTaskDetail('${t.id}')">${esc(t.title)}</span><span class="dash-task-date">${formatDate(t.dueDate,t.dueTime)}</span></div>`;}).join(''):`<div style="font-size:12px;color:var(--text3);padding:8px 0">${uiIcon('check')} Todo al día</div>`}
-      </div>
-      <div class="dash-card animate-fade-in" style="animation-delay:.1s">
-        <div class="dash-card-title">${uiIcon('dashboard')} Por prioridad</div>
-        <canvas class="dash-chart" id="chart-priority" height="180"></canvas>
-        <div class="chart-fallback" id="priority-fallback">
-          ${[['urgent','Urgente','#f43f5e'],['high','Alta','#f97316'],['normal','Normal','#22d3ee'],['low','Baja','#94a3b8']].map(([k,l,c])=>{const cnt=byP[k];const pp=active.length?Math.round(cnt/active.length*100):0;return`<div class="bar-row"><span class="bar-lbl">${l}</span><div class="dash-bar"><div class="dash-bar-fill" style="width:${pp}%;background:${c}"></div></div><span class="bar-val">${cnt}</span></div>`;}).join('')}
-        </div>
-      </div>
-      <div class="dash-card animate-fade-in" style="animation-delay:.2s">
-        <div class="dash-card-title">${uiIcon('folder')} Por espacio</div>
-        <canvas class="dash-chart" id="chart-space" height="180"></canvas>
-        <div class="chart-fallback" id="space-fallback">
-          ${bySpace.length?bySpace.map(s=>`<div class="bar-row"><span class="bar-lbl">${esc(s.name)}</span><div class="dash-bar"><div class="dash-bar-fill" style="width:${Math.round(s.count/maxSp*100)}%;background:${s.color}"></div></div><span class="bar-val">${s.count}</span></div>`).join(''):`<div style="font-size:12px;color:var(--text3)">Sin tareas activas</div>`}
-        </div>
-      </div>
-    </div>
-    <div class="dash-row">
-      <div class="dash-card animate-fade-in">
-        <div class="dash-card-title">${uiIcon('dashboard')} Progreso semanal</div>
-        <canvas class="dash-chart" id="chart-progress" height="140"></canvas>
-        <div class="chart-fallback" id="progress-fallback">
-          <div class="bar-row"><span class="bar-lbl">Total</span><div class="dash-bar"><div class="dash-bar-fill" style="width:${pct}%;background:linear-gradient(90deg,var(--accent),var(--green))"></div></div><span class="bar-val">${pct}%</span></div>
-        </div>
-      </div>
-    </div>
-    <div class="dash-row">
-      <div class="dash-card">
-        <div class="dash-card-title">${uiIcon('spark')} En foco</div>
-        ${important.length?`<div class="dash-mini-list">${important.map(t=>{const p=getProject(t.projectId);const c=t.priority==='urgent'?'var(--red)':t.dueDate&&t.dueDate<today?'var(--red)':p?.color||'var(--accent)';return`<div class="dash-mini-item" onclick="openTaskDetail('${t.id}')"><span class="dash-mini-dot" style="background:${c}"></span><span class="dash-mini-title">${esc(t.title)}</span><span class="dash-mini-meta">${t.dueDate?formatDate(t.dueDate,t.dueTime):PRIORITY_LABELS[t.priority]}</span></div>`;}).join('')}</div>`:`<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin urgencias por ahora.</div>`}
-      </div>
-      <div class="dash-card">
-        <div class="dash-card-title">${uiIcon('check')} Completadas recientes</div>
-        ${done.length?done.slice(-5).reverse().map(t=>{const p=getProject(t.projectId);return`<div class="dash-task-row">${uiIcon('check')}<span class="dash-task-name" onclick="openTaskDetail('${t.id}')">${esc(t.title)}</span>${p?`<span class="tag-badge" style="background:${p.color}20;color:${p.color}">${esc(p.name)}</span>`:''}</div>`;}).join(''):`<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin tareas completadas aún.</div>`}
-      </div>
-    </div>
-    <div class="dash-row">
-      <div class="dash-notes-card">
-        <div class="dash-card-title">${uiIcon('edit')} Notas rápidas</div>
-        <textarea class="dash-notes-ta" id="dash-notes-ta" placeholder="Apuntá ideas, pendientes, recordatorios...">${esc(localStorage.getItem('click1986_notes')||'')}</textarea>
-        <div class="dash-notes-saved" id="dash-notes-saved"></div>
-      </div>
+      <div class="dash-notes-card"><div class="dash-card-title">${uiIcon('edit')} Notas rápidas</div><textarea class="dash-notes-ta" id="dash-notes-ta" placeholder="Apuntá ideas, pendientes, recordatorios...">${esc(localStorage.getItem('click1986_notes')||'')}</textarea><div class="dash-notes-saved" id="dash-notes-saved"></div></div>
     </div>
   </div>`;
-  setTimeout(()=>{initDashboardCharts(byP,bySpace,all,done);initDashboardNotes();},50);
+  setTimeout(()=>{initDashboardCharts(byP,bySpace,all,done);initDashboardNotes();initDashboardRings();},50);
   return html;
 }
 
@@ -1043,6 +1050,12 @@ function initDashboardNotes(){
       localStorage.setItem('click1986_notes',ta.value);
       const saved2=document.getElementById('dash-notes-saved');if(saved2)saved2.textContent='✓ Guardado';
     },800);
+  });
+}
+
+function initDashboardRings(){
+  document.querySelectorAll('.kpi-ring-fill').forEach(el=>{
+    requestAnimationFrame(()=>{el.style.strokeDashoffset=el.getAttribute('data-offset');});
   });
 }
 
