@@ -271,6 +271,8 @@ body[data-density="compact"]{font-size:13px;}
 .task-status-mark{width:9px;height:9px;border-radius:50%;margin-top:5px;box-shadow:0 0 0 3px color-mix(in srgb,currentColor 18%,transparent);flex-shrink:0;}
 .task-card-title{font-size:14px;font-weight:600;line-height:1.42;margin-bottom:8px;color:var(--text);}
 .task-card-top .task-card-title{margin-bottom:0;flex:1;min-width:0;}
+.task-card-title[contenteditable]{outline:none;border-radius:5px;padding:2px 6px;background:var(--accent-soft);border:1.5px solid var(--accent);cursor:text;-webkit-user-select:text;user-select:text;word-break:break-word;white-space:normal;}
+.task-card-title[contenteditable]:focus{box-shadow:0 0 0 3px rgba(34,211,238,0.18);}
 .task-card-desc{font-size:12px;line-height:1.45;color:var(--text3);margin:-2px 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .task-card-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;}
 .task-card-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:7px;}
@@ -1062,7 +1064,36 @@ function initDashboardRings(){
 /* KANBAN */
 function renderKanban(){const tasks=filterTasks(state.tasks);return`<div class="kanban-board">${STATUSES.map(status=>{const col=tasks.filter(t=>t.status===status);const isArchived=status==='completado'||status==='cancelado';return`<div class="kanban-col" data-status="${status}" ondragover="dragOver(event)" ondrop="drop(event,this)" style="${isArchived?'opacity:0.75;':''}"><div class="kanban-col-header" style="${isArchived?'border-bottom:2px solid '+STATUS_COLORS[status]+';':''}"><div class="col-dot" style="background:${STATUS_COLORS[status]}"></div><div class="col-title" style="${isArchived?'color:'+STATUS_COLORS[status]+';':''}">${STATUS_LABELS[status]}</div><div class="col-count">${col.length}</div></div><div class="kanban-col-body">${col.map(t=>renderTaskCard(t)).join('')}${col.length===0?'<div class="empty-state"><div style="font-size:22px;opacity:.3">--</div></div>':''}</div><button class="add-task-col-btn" onclick="openTaskModal(\'${status}\')">${uiIcon('plus')} Agregar tarea</button></div>`;}).join('')}</div>`;}
 
-function renderTaskCard(t){const proj=getProject(t.projectId);const overdue=isOverdue(t.dueDate)&&t.status!=='completado';const sub=t.subtasks||[];const doneSub=sub.filter(s=>s.done).length;const pct=sub.length?Math.round(doneSub/sub.length*100):0;const tags=t.tags||[];const desc=(t.description||'').trim();return`<div class="task-card" draggable="true" data-id="${t.id}" ondragstart="dragStart(event,this)" ondragend="dragEnd(this)" onclick="openTaskDetail('${t.id}')"><div class="task-card-top"><span class="task-status-mark" style="color:${STATUS_COLORS[t.status]||'var(--accent)'};background:${STATUS_COLORS[t.status]||'var(--accent)'}"></span><div class="task-card-title">${esc(t.title)}</div></div>${desc?`<div class="task-card-desc">${esc(desc)}</div>`:''}${tags.length?`<div class="task-card-tags">${renderTags(tags)}</div>`:''}${sub.length?`<div class="subtask-bar"><div style="font-size:9.5px;color:var(--text3);display:flex;justify-content:space-between"><span>${doneSub}/${sub.length} subtareas</span><span>${pct}%</span></div><div class="subtask-progress"><div class="subtask-progress-fill" style="width:${pct}%"></div></div></div>`:''}<div class="task-card-meta"><span class="priority-badge priority-${t.priority}">${PRIORITY_LABELS[t.priority]}</span>${t.dueDate?`<span class="due-badge ${overdue?'overdue':''}">${uiIcon('calendar')} ${formatDate(t.dueDate,t.dueTime)}</span>`:''}${proj?`<span class="tag-badge" style="background:${proj.color}20;color:${proj.color}">${esc(proj.name)}</span>`:''}${t.comments.length?`<span class="comment-count" style="margin-left:auto">${uiIcon('comment')} ${t.comments.length}</span>`:''}</div></div>`;}
+function renderTaskCard(t){const proj=getProject(t.projectId);const overdue=isOverdue(t.dueDate)&&t.status!=='completado';const sub=t.subtasks||[];const doneSub=sub.filter(s=>s.done).length;const pct=sub.length?Math.round(doneSub/sub.length*100):0;const tags=t.tags||[];const desc=(t.description||'').trim();return`<div class="task-card" draggable="true" data-id="${t.id}" ondragstart="dragStart(event,this)" ondragend="dragEnd(this)" onclick="openTaskDetail('${t.id}')"><div class="task-card-top"><span class="task-status-mark" style="color:${STATUS_COLORS[t.status]||'var(--accent)'};background:${STATUS_COLORS[t.status]||'var(--accent)'}"></span><div class="task-card-title" title="Doble clic para editar" ondblclick="event.stopPropagation();startInlineEdit('${t.id}',this)">${esc(t.title)}</div></div>${desc?`<div class="task-card-desc">${esc(desc)}</div>`:''}${tags.length?`<div class="task-card-tags">${renderTags(tags)}</div>`:''}${sub.length?`<div class="subtask-bar"><div style="font-size:9.5px;color:var(--text3);display:flex;justify-content:space-between"><span>${doneSub}/${sub.length} subtareas</span><span>${pct}%</span></div><div class="subtask-progress"><div class="subtask-progress-fill" style="width:${pct}%"></div></div></div>`:''}<div class="task-card-meta"><span class="priority-badge priority-${t.priority}">${PRIORITY_LABELS[t.priority]}</span>${t.dueDate?`<span class="due-badge ${overdue?'overdue':''}">${uiIcon('calendar')} ${formatDate(t.dueDate,t.dueTime)}</span>`:''}${proj?`<span class="tag-badge" style="background:${proj.color}20;color:${proj.color}">${esc(proj.name)}</span>`:''}${t.comments.length?`<span class="comment-count" style="margin-left:auto">${uiIcon('comment')} ${t.comments.length}</span>`:''}</div></div>`;}
+
+function startInlineEdit(taskId, titleEl){
+  const task=state.tasks.find(t=>t.id===taskId);if(!task)return;
+  const original=task.title;
+  const card=titleEl.closest('.task-card');
+  titleEl.setAttribute('contenteditable','true');
+  titleEl.textContent=original;
+  titleEl.focus();
+  const r=document.createRange(),s=window.getSelection();r.selectNodeContents(titleEl);r.collapse(false);s.removeAllRanges();s.addRange(r);
+  const prevClick=card.onclick;
+  card.onclick=ev=>ev.stopPropagation();
+  card.draggable=false;
+  async function commit(){
+    cleanup();
+    const newTitle=titleEl.textContent.trim()||original;
+    if(newTitle!==original){task.title=newTitle;await saveTask(task);renderContent();}
+    else{titleEl.textContent=esc(original);}
+  }
+  function cancel(){cleanup();titleEl.textContent=esc(original);}
+  function cleanup(){
+    titleEl.removeAttribute('contenteditable');
+    card.onclick=prevClick;card.draggable=true;
+    titleEl.removeEventListener('keydown',kh);titleEl.removeEventListener('blur',bh);
+  }
+  function kh(e){if(e.key==='Enter'){e.preventDefault();commit();}else if(e.key==='Escape'){e.preventDefault();cancel();}}
+  function bh(){commit();}
+  titleEl.addEventListener('keydown',kh);
+  titleEl.addEventListener('blur',bh);
+}
 
 function dragStart(e,el){dragId=el.dataset.id;el.classList.add('dragging');e.dataTransfer.effectAllowed='move';}
 function dragEnd(el){el.classList.remove('dragging');document.querySelectorAll('.kanban-col').forEach(c=>c.classList.remove('drag-over'));}
