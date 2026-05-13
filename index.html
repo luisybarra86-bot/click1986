@@ -252,23 +252,23 @@ body[data-density="compact"]{font-size:13px;}
 .dash-notes-saved{font-size:10.5px;color:var(--text3);margin-top:5px;text-align:right;}
 
 /* ===== KANBAN ===== */
-.kanban-board{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;padding:16px;align-items:start;overflow-x:auto;scroll-snap-type:x mandatory;}
-.kanban-col{min-width:0;background:var(--surface2);border-radius:12px;border:1px solid var(--border);display:flex;flex-direction:column;max-height:calc(100vh - 134px);box-shadow:var(--card-shadow);}
-.kanban-col.drag-over{border-color:var(--accent);background:var(--accent-soft);}
-.kanban-col-header{padding:11px 13px;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.kanban-board{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;padding:16px;align-items:start;overflow-x:auto;}
+.kanban-col{min-width:0;background:linear-gradient(180deg,var(--surface2) 0%,var(--surface) 100%);border-radius:12px;border:1px solid var(--border);border-top:none;display:flex;flex-direction:column;max-height:calc(100vh - 134px);box-shadow:var(--card-shadow);overflow:hidden;}
+.kanban-col.drag-over{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent),var(--shadow-sm);}
+.kanban-col-header{padding:12px 14px 11px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);flex-shrink:0;}
 .col-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.col-title{font-weight:700;font-size:13px;flex:1;color:var(--text);}
-.col-count{font-size:10.5px;color:var(--text3);background:var(--surface);padding:2px 6px;border-radius:8px;}
-.kanban-col-body{padding:8px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:8px;min-height:50px;}
-.add-task-col-btn{margin:4px 8px 8px;padding:6px 10px;border-radius:8px;border:1px dashed var(--border2);background:transparent;color:var(--text3);cursor:pointer;font-size:12px;display:flex;align-items:center;gap:5px;transition:all .12s;font-family:var(--font-body);}
+.col-title{font-weight:700;font-size:13px;flex:1;color:var(--text);font-family:var(--font-display);}
+.col-count{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;}
+.kanban-col-body{padding:8px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:7px;min-height:60px;}
+.add-task-col-btn{margin:2px 8px 8px;padding:7px 10px;border-radius:8px;border:1px dashed var(--border2);background:transparent;color:var(--text3);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .15s;font-family:var(--font-body);}
 .add-task-col-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
 
 /* ===== TASK CARD ===== */
-.task-card{background:var(--surface);border-radius:10px;padding:14px;border:1px solid var(--border);cursor:pointer;transition:all .18s;user-select:none;box-shadow:var(--card-shadow);}
-.task-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--card-shadow-hover);}
-.task-card.dragging{opacity:.4;transform:rotate(2deg);}
+.task-card{background:linear-gradient(160deg,color-mix(in srgb,var(--surface2) 60%,var(--surface)),var(--surface));border-radius:10px;padding:12px 12px 12px 10px;border:1px solid var(--border);border-left:3px solid var(--border2);cursor:pointer;transition:all .18s;user-select:none;box-shadow:var(--card-shadow);}
+.task-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:var(--card-shadow-hover);}
+.task-card.dragging{opacity:.35;transform:rotate(1.5deg);box-shadow:var(--shadow);}
 .task-card-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;}
-.task-status-mark{width:9px;height:9px;border-radius:50%;margin-top:5px;box-shadow:0 0 0 3px color-mix(in srgb,currentColor 18%,transparent);flex-shrink:0;}
+.task-status-mark{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;}
 .task-card-title{font-size:14px;font-weight:600;line-height:1.42;margin-bottom:8px;color:var(--text);}
 .task-card-top .task-card-title{margin-bottom:0;flex:1;min-width:0;}
 .task-card-title[contenteditable]{outline:none;border-radius:5px;padding:2px 6px;background:var(--accent-soft);border:1.5px solid var(--accent);cursor:text;-webkit-user-select:text;user-select:text;word-break:break-word;white-space:normal;}
@@ -701,6 +701,7 @@ const STATUSES=['pendiente','en progreso','revisión','completado','cancelado'];
 const STATUS_COLORS={'pendiente':'#666','en progreso':'#1e88e5','revisión':'#f9a825','completado':'#43a047','cancelado':'#e53935'};
 const STATUS_LABELS={'pendiente':'Pendiente','en progreso':'En Progreso','revisión':'Revisión','completado':'Completado','cancelado':'Cancelado'};
 const PRIORITY_LABELS={urgent:'Urgente',high:'Alta',normal:'Normal',low:'Baja'};
+const PRIO_COLORS={urgent:'#f43f5e',high:'#f97316',normal:'#22d3ee',low:'#94a3b8'};
 let TG_TOKEN=localStorage.getItem('click1986_tg_token')||'';
 let TG_CHAT=localStorage.getItem('click1986_tg_chat')||'';
 let state={projects:[],tasks:[],currentView:'dashboard',filterProject:null,calendarDate:new Date(),theme:'dark',userName:'Luis',density:'comfortable'};
@@ -1062,9 +1063,9 @@ function initDashboardRings(){
 }
 
 /* KANBAN */
-function renderKanban(){const tasks=filterTasks(state.tasks);return`<div class="kanban-board">${STATUSES.map(status=>{const col=tasks.filter(t=>t.status===status);const isArchived=status==='completado'||status==='cancelado';return`<div class="kanban-col" data-status="${status}" ondragover="dragOver(event)" ondrop="drop(event,this)" style="${isArchived?'opacity:0.75;':''}"><div class="kanban-col-header" style="${isArchived?'border-bottom:2px solid '+STATUS_COLORS[status]+';':''}"><div class="col-dot" style="background:${STATUS_COLORS[status]}"></div><div class="col-title" style="${isArchived?'color:'+STATUS_COLORS[status]+';':''}">${STATUS_LABELS[status]}</div><div class="col-count">${col.length}</div></div><div class="kanban-col-body">${col.map(t=>renderTaskCard(t)).join('')}${col.length===0?'<div class="empty-state"><div style="font-size:22px;opacity:.3">--</div></div>':''}</div><button class="add-task-col-btn" onclick="openTaskModal(\'${status}\')">${uiIcon('plus')} Agregar tarea</button></div>`;}).join('')}</div>`;}
+function renderKanban(){const tasks=filterTasks(state.tasks);return`<div class="kanban-board">${STATUSES.map(status=>{const col=tasks.filter(t=>t.status===status);const isArchived=status==='completado'||status==='cancelado';const sc=STATUS_COLORS[status];return`<div class="kanban-col" data-status="${status}" ondragover="dragOver(event)" ondrop="drop(event,this)" style="border-top:3px solid ${sc};${isArchived?'opacity:0.78;':''}"><div class="kanban-col-header"><div class="col-dot" style="background:${sc}"></div><div class="col-title">${STATUS_LABELS[status]}</div><div class="col-count" style="background:${sc}22;color:${sc}">${col.length}</div></div><div class="kanban-col-body">${col.map(t=>renderTaskCard(t)).join('')}${col.length===0?`<div class="empty-state" style="height:70px;opacity:.5"><div style="font-size:18px">◌</div><div style="font-size:10px">Sin tareas</div></div>`:''}</div><button class="add-task-col-btn" onclick="openTaskModal('${status}')">${uiIcon('plus')} Agregar</button></div>`;}).join('')}</div>`;}
 
-function renderTaskCard(t){const proj=getProject(t.projectId);const overdue=isOverdue(t.dueDate)&&t.status!=='completado';const sub=t.subtasks||[];const doneSub=sub.filter(s=>s.done).length;const pct=sub.length?Math.round(doneSub/sub.length*100):0;const tags=t.tags||[];const desc=(t.description||'').trim();return`<div class="task-card" draggable="true" data-id="${t.id}" ondragstart="dragStart(event,this)" ondragend="dragEnd(this)" onclick="openTaskDetail('${t.id}')"><div class="task-card-top"><span class="task-status-mark" style="color:${STATUS_COLORS[t.status]||'var(--accent)'};background:${STATUS_COLORS[t.status]||'var(--accent)'}"></span><div class="task-card-title" title="Doble clic para editar" ondblclick="event.stopPropagation();startInlineEdit('${t.id}',this)">${esc(t.title)}</div></div>${desc?`<div class="task-card-desc">${esc(desc)}</div>`:''}${tags.length?`<div class="task-card-tags">${renderTags(tags)}</div>`:''}${sub.length?`<div class="subtask-bar"><div style="font-size:9.5px;color:var(--text3);display:flex;justify-content:space-between"><span>${doneSub}/${sub.length} subtareas</span><span>${pct}%</span></div><div class="subtask-progress"><div class="subtask-progress-fill" style="width:${pct}%"></div></div></div>`:''}<div class="task-card-meta"><span class="priority-badge priority-${t.priority}">${PRIORITY_LABELS[t.priority]}</span>${t.dueDate?`<span class="due-badge ${overdue?'overdue':''}">${uiIcon('calendar')} ${formatDate(t.dueDate,t.dueTime)}</span>`:''}${proj?`<span class="tag-badge" style="background:${proj.color}20;color:${proj.color}">${esc(proj.name)}</span>`:''}${t.comments.length?`<span class="comment-count" style="margin-left:auto">${uiIcon('comment')} ${t.comments.length}</span>`:''}</div></div>`;}
+function renderTaskCard(t){const proj=getProject(t.projectId);const overdue=isOverdue(t.dueDate)&&t.status!=='completado';const sub=t.subtasks||[];const doneSub=sub.filter(s=>s.done).length;const pct=sub.length?Math.round(doneSub/sub.length*100):0;const tags=t.tags||[];const desc=(t.description||'').trim();const pc=PRIO_COLORS[t.priority]||'var(--border2)';const isDone=t.status==='completado';return`<div class="task-card" draggable="true" data-id="${t.id}" ondragstart="dragStart(event,this)" ondragend="dragEnd(this)" onclick="openTaskDetail('${t.id}')" style="border-left:3px solid ${pc};${isDone?'opacity:0.6;':''}"><div class="task-card-top"><div class="task-card-title" title="Doble clic para editar" ondblclick="event.stopPropagation();startInlineEdit('${t.id}',this)">${esc(t.title)}</div></div>${desc?`<div class="task-card-desc">${esc(desc)}</div>`:''}${tags.length?`<div class="task-card-tags">${renderTags(tags)}</div>`:''}${sub.length?`<div class="subtask-bar"><div style="font-size:9.5px;color:var(--text3);display:flex;justify-content:space-between;margin-bottom:4px"><span>${doneSub}/${sub.length} subtareas</span><span style="color:${pc};font-weight:700">${pct}%</span></div><div class="subtask-progress"><div class="subtask-progress-fill" style="width:${pct}%;background:${pc}"></div></div></div>`:''}<div class="task-card-meta"><span class="priority-badge priority-${t.priority}">${PRIORITY_LABELS[t.priority]}</span>${t.dueDate?`<span class="due-badge ${overdue?'overdue':''}">${uiIcon('calendar')} ${formatDate(t.dueDate,t.dueTime)}</span>`:''}${proj?`<span class="tag-badge" style="background:${proj.color}20;color:${proj.color}">${esc(proj.name)}</span>`:''}${t.comments.length?`<span class="comment-count" style="margin-left:auto">${uiIcon('comment')} ${t.comments.length}</span>`:''}</div></div>`;}
 
 function startInlineEdit(taskId, titleEl){
   const task=state.tasks.find(t=>t.id===taskId);if(!task)return;
