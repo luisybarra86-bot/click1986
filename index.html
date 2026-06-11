@@ -843,6 +843,33 @@ let state={projects:[],tasks:[],currentView:'dashboard',filterProject:null,calen
 let dragId=null;
 let completedSectionOpen=false;
 
+/* AUTH */
+let authEmail='';
+function showLogin(){
+  if(document.getElementById('login-overlay'))return;
+  const el=document.createElement('div');el.id='login-overlay';
+  el.innerHTML=`<div style="position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999"><form onsubmit="doLogin(event)" style="display:flex;flex-direction:column;gap:14px;width:min(320px,90vw)"><div style="font-family:Space Grotesk,sans-serif;font-size:26px;font-weight:700;text-align:center;background:linear-gradient(135deg,#22d3ee,#f97316,#84cc16);-webkit-background-clip:text;-webkit-text-fill-color:transparent">click.1986</div><input class="form-input" type="email" id="login-email" placeholder="Email" autocomplete="username" required><input class="form-input" type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password" required><button class="btn btn-primary" type="submit" id="login-btn">Entrar</button><div id="login-error" style="font-size:12px;color:#ef5350;text-align:center;min-height:16px"></div></form></div>`;
+  document.body.appendChild(el);
+  document.getElementById('login-email').focus();
+}
+function hideLogin(){const el=document.getElementById('login-overlay');if(el)el.remove();}
+async function doLogin(e){
+  e.preventDefault();
+  const btn=document.getElementById('login-btn');const errEl=document.getElementById('login-error');
+  btn.disabled=true;btn.textContent='Entrando...';errEl.textContent='';
+  const{data,error}=await supa.auth.signInWithPassword({email:document.getElementById('login-email').value.trim(),password:document.getElementById('login-pass').value});
+  btn.disabled=false;btn.textContent='Entrar';
+  if(error){console.error(error);errEl.textContent='Email o contraseña incorrectos';return;}
+  authEmail=data.session?.user?.email||'';
+  hideLogin();loadState().then(()=>startNotificationScheduler());
+}
+async function logout(){await supa.auth.signOut();location.reload();}
+async function initAuth(){
+  const{data:{session}}=await supa.auth.getSession();
+  if(session){authEmail=session.user?.email||'';loadState().then(()=>startNotificationScheduler());}
+  else showLogin();
+}
+
 async function loadState(){
   state.theme=localStorage.getItem('click1986_theme')||'dark';
   state.userName=localStorage.getItem('click1986_user_name')||'Luis';
@@ -1365,6 +1392,14 @@ function renderSettings(){
         <button class="btn btn-primary btn-sm" onclick="saveSettings()">Guardar</button>
       </div>
       <div class="settings-card">
+        <div class="settings-title">Cuenta</div>
+        <div class="settings-sub">Sesión activa en Supabase.</div>
+        <div class="setting-row">
+          <div><div class="setting-label">${esc(authEmail||'Sin sesión')}</div><div class="setting-help">Al cerrar sesión vas a tener que ingresar de nuevo.</div></div>
+          <button class="btn btn-ghost btn-sm" onclick="logout()">Cerrar sesión</button>
+        </div>
+      </div>
+      <div class="settings-card">
         <div class="settings-title">Datos</div>
         <div class="settings-sub">Accesos rápidos para respaldar o recuperar tu información local del proyecto.</div>
         <div class="setting-row">
@@ -1556,7 +1591,7 @@ function updateClock(){
   if(te)te.textContent=time;if(de)de.textContent=date;
 }
 updateClock();setInterval(updateClock,1000);
-loadState().then(()=>startNotificationScheduler());
+initAuth();
 // Ctrl+K / Cmd+K → command palette
 document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();openCmdPalette();}
