@@ -18,5 +18,10 @@ Gestor de tareas personal con soporte PWA (instalable como app).
 
 ## Datos
 
-Los datos se guardan en `localStorage` del navegador.
-Para respaldar: en la app podés exportar (próxima funcionalidad).
+Los datos (espacios y tareas) se guardan en Supabase (tablas `spaces` y `tasks`).
+Las preferencias de la interfaz (tema, densidad, nombre, Telegram) quedan en `localStorage` del navegador.
+
+## Respaldo
+
+En la app: sidebar → "Exportar backup" (o Configuración → Datos → Exportar).
+Descarga un JSON con todos los espacios y tareas. Para restaurar, usar "Importar backup".
