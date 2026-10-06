@@ -2,19 +2,27 @@
 // recordatorios por Telegram. Pensado para correr sin dependencias (Node 18+)
 // vía GitHub Actions. No requiere npm install.
 
-import admin from 'firebase-admin';
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
+import 'firebase/compat/firestore';
 
-const SERVICE_ACCOUNT = process.env.FIREBASE_SERVICE_ACCOUNT;
+const BOT_EMAIL = 'cobros-bot@click1986.app';
+const BOT_PASSWORD = process.env.COBROS_BOT_PASSWORD;
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TG_CHAT = process.env.TELEGRAM_CHAT_ID;
 
-if (!SERVICE_ACCOUNT || !TG_TOKEN || !TG_CHAT) {
-  console.error('Faltan variables de entorno (FIREBASE_SERVICE_ACCOUNT / TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID).');
+if (!BOT_PASSWORD || !TG_TOKEN || !TG_CHAT) {
+  console.error('Faltan variables de entorno (COBROS_BOT_PASSWORD / TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID).');
   process.exit(1);
 }
 
-admin.initializeApp({ credential: admin.credential.cert(JSON.parse(SERVICE_ACCOUNT)) });
-const db = admin.firestore();
+firebase.initializeApp({
+  apiKey: 'AIzaSyDMbVBOR6WOR3zFKdJKbCVSIkIxKFqqWN4',
+  authDomain: 'click1986.firebaseapp.com',
+  projectId: 'click1986',
+  appId: '1:88655171155:web:cbfb47bde53e92735480a6',
+});
+const db = firebase.firestore();
 
 const SPACE_NAME = 'Cobros Franquicias';
 const SPACE_COLOR = '#7c3aed';
@@ -153,6 +161,7 @@ async function recordatorios(spaceId, todayIso) {
 }
 
 async function main() {
+  await firebase.auth().signInWithEmailAndPassword(BOT_EMAIL, BOT_PASSWORD);
   const parts = argParts();
   const todayIso = iso(parts.year, parts.month, parts.day);
   const spaceId = await getOrCreateSpace();
@@ -164,7 +173,7 @@ async function main() {
   console.log('Listo.');
 }
 
-main().catch(err => {
+main().then(() => process.exit(0)).catch(err => {
   console.error(err);
   process.exit(1);
 });

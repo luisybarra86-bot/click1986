@@ -14,11 +14,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Instalar firebase-admin
-        run: npm install --no-save --no-audit --no-fund firebase-admin
+      - name: Instalar firebase
+        run: npm install --no-save --no-audit --no-fund firebase
       - name: Ejecutar script de cobros
         env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          COBROS_BOT_PASSWORD: ${{ secrets.COBROS_BOT_PASSWORD }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: node scripts/cobros-diario.mjs
