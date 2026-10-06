@@ -10,7 +10,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="click.1986">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@egjs/hammerjs@2.0.17/hammer.min.js"></script>
@@ -829,9 +831,8 @@ body[data-density="compact"] .dash-card{padding:13px;}
 </nav>
 
 <script>
-const SUPA_URL='https://ecljqfqzdatbanzvzxai.supabase.co';
-const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjbGpxZnF6ZGF0YmFuenZ6eGFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MTcyMTEsImV4cCI6MjA5MDI5MzIxMX0.PCGLU4YqNmiEw-jfNquDeQwpRh3uxQD0lfmGbDDidVA';
-const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
+firebase.initializeApp({apiKey:'AIzaSyDMbVBOR6WOR3zFKdJKbCVSIkIxKFqqWN4',authDomain:'click1986.firebaseapp.com',projectId:'click1986',storageBucket:'click1986.firebasestorage.app',messagingSenderId:'88655171155',appId:'1:88655171155:web:cbfb47bde53e92735480a6'});
+const fbAuth=firebase.auth();const db=firebase.firestore();
 const COLORS=['#e53935','#fb8c00','#f9a825','#43a047','#1e88e5','#8e24aa','#00acc1','#6d4c41','#546e7a','#ec407a'];
 const TAG_COLORS=['#0891b2','#f97316','#16a34a','#e11d48','#0284c7','#65a30d','#7c3aed','#db2777'];
 const PRIORITIES=['urgent','high','normal','low'];
@@ -860,17 +861,20 @@ async function doLogin(e){
   e.preventDefault();
   const btn=document.getElementById('login-btn');const errEl=document.getElementById('login-error');
   btn.disabled=true;btn.textContent='Entrando...';errEl.textContent='';
-  const{data,error}=await supa.auth.signInWithPassword({email:document.getElementById('login-email').value.trim(),password:document.getElementById('login-pass').value});
+  let cred;let error=null;try{cred=await fbAuth.signInWithEmailAndPassword(document.getElementById('login-email').value.trim(),document.getElementById('login-pass').value);}catch(err){error=err;}
   btn.disabled=false;btn.textContent='Entrar';
   if(error){console.error(error);errEl.textContent='Email o contraseña incorrectos';return;}
-  authEmail=data.session?.user?.email||'';
+  authEmail=cred.user?.email||'';
   hideLogin();loadState().then(()=>startNotificationScheduler());
 }
-async function logout(){await supa.auth.signOut();location.reload();}
-async function initAuth(){
-  const{data:{session}}=await supa.auth.getSession();
-  if(session){authEmail=session.user?.email||'';loadState().then(()=>startNotificationScheduler());}
-  else showLogin();
+async function logout(){await fbAuth.signOut();location.reload();}
+function initAuth(){
+  let first=true;
+  fbAuth.onAuthStateChanged(user=>{
+    if(!first)return;first=false;
+    if(user){authEmail=user.email||'';loadState().then(()=>startNotificationScheduler());}
+    else showLogin();
+  });
 }
 
 async function loadState(){
@@ -881,23 +885,21 @@ async function loadState(){
   applyDensity(state.density);
   showLoading(true);
   try{
-    const{data:sp,error:e1}=await supa.from('spaces').select('*').order('created_at');
-    if(e1)throw e1;
-    state.projects=(sp||[]).map(s=>({id:s.id,name:s.name,color:s.color}));
-    const{data:tk,error:e2}=await supa.from('tasks').select('*').order('created_at');
-    if(e2)throw e2;
-    state.tasks=(tk||[]).map(t=>({id:t.id,title:t.title,description:t.description||'',status:t.status,priority:t.priority,projectId:t.project_id,dueDate:t.due_date||'',dueTime:t.due_time||'',comments:t.comments||[],subtasks:t.subtasks||[],tags:t.tags||[],createdAt:t.created_at,completedAt:t.completed_at||''}));
-    if(!state.projects.length){const def={id:uid(),name:'Personal',color:'#0891b2'};await supa.from('spaces').insert({id:def.id,name:def.name,color:def.color});state.projects=[def];}
+    const sp=(await db.collection('spaces').orderBy('created_at').get()).docs.map(d=>d.data());
+    state.projects=sp.map(s=>({id:s.id,name:s.name,color:s.color,createdAt:s.created_at}));
+    const tk=(await db.collection('tasks').orderBy('created_at').get()).docs.map(d=>d.data());
+    state.tasks=tk.map(t=>({id:t.id,title:t.title,description:t.description||'',status:t.status,priority:t.priority,projectId:t.project_id,dueDate:t.due_date||'',dueTime:t.due_time||'',comments:t.comments||[],subtasks:t.subtasks||[],tags:t.tags||[],createdAt:t.created_at,completedAt:t.completed_at||''}));
+    if(!state.projects.length){const def={id:uid(),name:'Personal',color:'#0891b2'};await saveSpace(def);state.projects=[def];}
   }catch(err){console.error(err);showToast('Error conectando a la nube','error');}
   showLoading(false);render();
 }
 function showLoading(s){let el=document.getElementById('loading-overlay');if(s&&!el){el=document.createElement('div');el.id='loading-overlay';el.innerHTML=`<div style="position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9998;gap:20px"><div style="font-family:Space Grotesk,sans-serif;font-size:19px;font-weight:700;background:linear-gradient(135deg,#22d3ee,#f97316,#84cc16);-webkit-background-clip:text;-webkit-text-fill-color:transparent">click.1986</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:320px">${Array(6).fill(0).map((_,i)=>`<div class="skeleton skeleton-kpi" style="animation-delay:${i*0.1}s"></div>`).join('')}</div><div style="font-size:12px;color:var(--text3);animation:pulse 1.5s infinite">Cargando tus datos...</div></div>`;document.body.appendChild(el);}else if(!s&&el)el.remove();}
 
 function dbError(err,msg){console.error(err);showToast(`${msg} — el cambio no quedó en la nube, reintentá`,'error');}
-async function saveSpace(s){const{error}=await supa.from('spaces').upsert({id:s.id,name:s.name,color:s.color});if(error)dbError(error,'No se pudo guardar el espacio');}
-async function saveTask(t){const{error}=await supa.from('tasks').upsert({id:t.id,title:t.title,description:t.description||'',status:t.status,priority:t.priority,project_id:t.projectId,due_date:t.dueDate||'',due_time:t.dueTime||'',comments:t.comments||[],subtasks:t.subtasks||[],tags:t.tags||[],completed_at:t.completedAt||null});if(error)dbError(error,'No se pudo guardar la tarea');}
-async function deleteTaskDB(id){const{error}=await supa.from('tasks').delete().eq('id',id);if(error)dbError(error,'No se pudo eliminar la tarea');}
-async function deleteSpaceDB(id){const{error}=await supa.from('spaces').delete().eq('id',id);if(error)dbError(error,'No se pudo eliminar el espacio');}
+async function saveSpace(s){try{if(!s.createdAt)s.createdAt=new Date().toISOString();await db.collection('spaces').doc(String(s.id)).set({id:s.id,name:s.name,color:s.color,created_at:s.createdAt},{merge:true});}catch(error){dbError(error,'No se pudo guardar el espacio');}}
+async function saveTask(t){try{if(!t.createdAt)t.createdAt=new Date().toISOString();await db.collection('tasks').doc(String(t.id)).set({id:t.id,title:t.title,description:t.description||'',status:t.status,priority:t.priority,project_id:t.projectId,due_date:t.dueDate||'',due_time:t.dueTime||'',comments:t.comments||[],subtasks:t.subtasks||[],tags:t.tags||[],created_at:t.createdAt,completed_at:t.completedAt||null});}catch(error){dbError(error,'No se pudo guardar la tarea');}}
+async function deleteTaskDB(id){try{await db.collection('tasks').doc(String(id)).delete();}catch(error){dbError(error,'No se pudo eliminar la tarea');}}
+async function deleteSpaceDB(id){try{await db.collection('spaces').doc(String(id)).delete();}catch(error){dbError(error,'No se pudo eliminar el espacio');}}
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function getProject(id){return state.projects.find(p=>p.id===id);}
@@ -1423,7 +1425,7 @@ function openEditSpaceModal(id){const proj=getProject(id);if(!proj)return;create
 
 /* DELETE SPACE */
 function confirmDeleteSpace(id){const proj=getProject(id);if(!proj)return;const tc=state.tasks.filter(t=>t.projectId===id).length;document.getElementById('modal-container').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:380px"><div class="modal-header"><div class="modal-title">Eliminar espacio</div><button class="modal-close" onclick="closeModal()">✕</button></div><div class="modal-body"><p style="font-size:13px;line-height:1.6;color:var(--text2)">¿Eliminar "${esc(proj.name)}"?${tc>0?` Se eliminarán ${tc} tarea${tc!==1?'s':''}.`:''}</p>${tc>0?`<p style="font-size:11px;color:#ef5350;margin-top:4px">Esta acción no se puede deshacer.</p>`:''}</div><div class="modal-footer"><button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancelar</button><button class="btn btn-danger btn-sm" onclick="deleteSpace('${id}')">Eliminar</button></div></div></div>`;}
-async function deleteSpace(id){if(state.filterProject===id)state.filterProject=null;const{error}=await supa.from('tasks').delete().eq('project_id',id);if(error){dbError(error,'No se pudieron eliminar las tareas del espacio');return;}state.projects=state.projects.filter(p=>p.id!==id);state.tasks=state.tasks.filter(t=>t.projectId!==id);await deleteSpaceDB(id);closeModal();render();showToast('Espacio eliminado');}
+async function deleteSpace(id){if(state.filterProject===id)state.filterProject=null;try{const snap=await db.collection('tasks').where('project_id','==',id).get();const batch=db.batch();snap.docs.forEach(d=>batch.delete(d.ref));await batch.commit();}catch(error){dbError(error,'No se pudieron eliminar las tareas del espacio');return;}state.projects=state.projects.filter(p=>p.id!==id);state.tasks=state.tasks.filter(t=>t.projectId!==id);await deleteSpaceDB(id);closeModal();render();showToast('Espacio eliminado');}
 
 /* TASK MODAL */
 function openTaskModal(defaultStatus,defaultDate){const dp=state.filterProject||(state.projects[0]?.id||'');createModal('Nueva Tarea',`<div class="form-group"><label class="form-label">Título *</label><input class="form-input" id="t-title" placeholder="¿Qué hay que hacer?" autofocus></div><div class="form-group"><label class="form-label">Descripción</label><textarea class="form-textarea" id="t-desc" placeholder="Detalles opcionales..."></textarea></div><div class="form-row"><div class="form-group"><label class="form-label">Estado</label><select class="form-select" id="t-status">${STATUSES.map(s=>`<option value="${s}" ${s===(defaultStatus||'pendiente')?'selected':''}>${STATUS_LABELS[s]}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Prioridad</label><select class="form-select" id="t-priority">${PRIORITIES.map(p=>`<option value="${p}">${PRIORITY_LABELS[p]}</option>`).join('')}</select></div></div><div class="form-row"><div class="form-group"><label class="form-label">Espacio</label><select class="form-select" id="t-project">${state.projects.map(p=>`<option value="${p.id}" ${p.id===dp?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Fecha límite</label><input class="form-input" type="date" id="t-due" value="${defaultDate||''}"></div></div><div class="form-row"><div class="form-group"><label class="form-label">Hora límite</label><input class="form-input" type="time" id="t-time"></div><div></div></div>`,async()=>{const title=document.getElementById('t-title').value.trim();if(!title){showToast('Ingresá un título','error');return;}const newTask={id:uid(),title,description:document.getElementById('t-desc').value,status:document.getElementById('t-status').value,priority:document.getElementById('t-priority').value,projectId:document.getElementById('t-project').value,dueDate:document.getElementById('t-due').value,dueTime:document.getElementById('t-time')?.value||'',comments:[],subtasks:[],tags:[],createdAt:new Date().toISOString()};state.tasks.push(newTask);await saveTask(newTask);closeModal();render();showToast('✓ Tarea creada','success');},'Crear tarea');}

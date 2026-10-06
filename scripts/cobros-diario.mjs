@@ -2,15 +2,19 @@
 // recordatorios por Telegram. Pensado para correr sin dependencias (Node 18+)
 // vía GitHub Actions. No requiere npm install.
 
-const SUPABASE_URL = 'https://ecljqfqzdatbanzvzxai.supabase.co';
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+import admin from 'firebase-admin';
+
+const SERVICE_ACCOUNT = process.env.FIREBASE_SERVICE_ACCOUNT;
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TG_CHAT = process.env.TELEGRAM_CHAT_ID;
 
-if (!SERVICE_KEY || !TG_TOKEN || !TG_CHAT) {
-  console.error('Faltan variables de entorno (SUPABASE_SERVICE_ROLE_KEY / TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID).');
+if (!SERVICE_ACCOUNT || !TG_TOKEN || !TG_CHAT) {
+  console.error('Faltan variables de entorno (FIREBASE_SERVICE_ACCOUNT / TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID).');
   process.exit(1);
 }
+
+admin.initializeApp({ credential: admin.credential.cert(JSON.parse(SERVICE_ACCOUNT)) });
+const db = admin.firestore();
 
 const SPACE_NAME = 'Cobros Franquicias';
 const SPACE_COLOR = '#7c3aed';
@@ -45,32 +49,12 @@ function argParts(date = new Date()) {
   return { year: +o.year, month: +o.month, day: +o.day };
 }
 
-async function sb(path, opts = {}) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...opts,
-    headers: {
-      apikey: SERVICE_KEY,
-      Authorization: `Bearer ${SERVICE_KEY}`,
-      'Content-Type': 'application/json',
-      Prefer: opts.prefer || 'return=representation',
-      ...(opts.headers || {}),
-    },
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Supabase ${path} -> ${res.status}: ${body}`);
-  }
-  const text = await res.text();
-  return text ? JSON.parse(text) : null;
-}
-
 async function getOrCreateSpace() {
-  const found = await sb(`spaces?name=eq.${encodeURIComponent(SPACE_NAME)}&select=id,name`);
-  if (found && found.length) return found[0].id;
+  const found = await db.collection('spaces').where('name', '==', SPACE_NAME).limit(1).get();
+  if (!found.empty) return found.docs[0].data().id;
   const id = uid();
-  await sb('spaces', {
-    method: 'POST',
-    body: JSON.stringify({ id, name: SPACE_NAME, color: SPACE_COLOR }),
+  await db.collection('spaces').doc(id).set({
+    id, name: SPACE_NAME, color: SPACE_COLOR, created_at: new Date().toISOString(),
   });
   console.log(`Espacio "${SPACE_NAME}" creado (${id}).`);
   return id;
@@ -102,23 +86,23 @@ function buildPeriod({ year, month, day }) {
 async function generarCobros(spaceId, period) {
   for (const f of FRANQUICIAS) {
     const title = `Cobro ${f.name} — período ${period.label}`;
-    const exists = await sb(`tasks?title=eq.${encodeURIComponent(title)}&select=id`);
-    if (exists && exists.length) continue;
-    await sb('tasks', {
-      method: 'POST',
-      body: JSON.stringify({
-        id: uid(),
-        title,
-        description: `Período ${period.start} al ${period.end}.`,
-        status: 'pendiente',
-        priority: 'normal',
-        project_id: spaceId,
-        due_date: period.due,
-        due_time: '',
-        comments: [],
-        subtasks: [],
-        tags: [TAG_COBRO, { name: f.name, color: f.color }],
-      }),
+    const exists = await db.collection('tasks').where('title', '==', title).limit(1).get();
+    if (!exists.empty) continue;
+    const id = uid();
+    await db.collection('tasks').doc(id).set({
+      id,
+      title,
+      description: `Período ${period.start} al ${period.end}.`,
+      status: 'pendiente',
+      priority: 'normal',
+      project_id: spaceId,
+      due_date: period.due,
+      due_time: '',
+      comments: [],
+      subtasks: [],
+      tags: [TAG_COBRO, { name: f.name, color: f.color }],
+      created_at: new Date().toISOString(),
+      completed_at: null,
     });
     console.log(`Creado: ${title} (vence ${period.due})`);
   }
@@ -135,9 +119,11 @@ async function enviarTelegram(text) {
 }
 
 async function recordatorios(spaceId, todayIso) {
-  const pendientes = await sb(
-    `tasks?project_id=eq.${spaceId}&status=eq.pendiente&select=title,due_date,tags`
-  );
+  const snap = await db.collection('tasks')
+    .where('project_id', '==', spaceId)
+    .where('status', '==', 'pendiente')
+    .get();
+  const pendientes = snap.docs.map(d => d.data());
   if (!pendientes || !pendientes.length) return;
 
   const tomorrow = new Date(`${todayIso}T00:00:00-03:00`);
