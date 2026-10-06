@@ -2,9 +2,17 @@ name: Cobros diario
 
 on:
   schedule:
-    # 11:00 UTC = 08:00 Argentina (UTC-3)
-    - cron: '0 11 * * *'
-  workflow_dispatch: {}
+    # GitHub demora las tareas programadas varias horas: se lanzan ventanas
+    # tempranas (UTC) y el candado del script evita avisos repetidos.
+    - cron: '17 6 * * *'
+    - cron: '17 8 * * *'
+    - cron: '17 10 * * *'
+  workflow_dispatch:
+    inputs:
+      prueba:
+        description: 'Enviar mensaje de prueba a Telegram'
+        type: boolean
+        default: false
 
 jobs:
   cobros:
@@ -21,4 +29,5 @@ jobs:
           COBROS_BOT_PASSWORD: ${{ secrets.COBROS_BOT_PASSWORD }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TEST_TELEGRAM: ${{ inputs.prueba }}
         run: node scripts/cobros-diario.mjs

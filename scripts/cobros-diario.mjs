@@ -10,6 +10,7 @@ const BOT_EMAIL = 'cobros-bot@click1986.app';
 const BOT_PASSWORD = process.env.COBROS_BOT_PASSWORD;
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TG_CHAT = process.env.TELEGRAM_CHAT_ID;
+const TEST = process.env.TEST_TELEGRAM === 'true';
 
 if (!BOT_PASSWORD || !TG_TOKEN || !TG_CHAT) {
   console.error('Faltan variables de entorno (COBROS_BOT_PASSWORD / TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID).');
@@ -30,9 +31,7 @@ const TAG_COBRO = { name: 'Cobro', color: '#7c3aed' };
 
 const FRANQUICIAS = [
   { name: 'Independencia', color: '#1e88e5' },
-  { name: 'Perón', color: '#8e24aa' },
   { name: 'Barrio Sur', color: '#43a047' },
-  { name: 'Flip', color: '#fb8c00' },
   { name: 'Portal', color: '#e53935' },
 ];
 
@@ -126,13 +125,32 @@ async function enviarTelegram(text) {
   if (!res.ok) console.error('Error enviando Telegram:', await res.text());
 }
 
+async function avisoCierre({ year, month, day }) {
+  const last = lastDayOfMonth(year, month);
+  let period = null;
+  if (day === 15) period = buildPeriod({ year, month, day: 1 });
+  else if (day === last) period = buildPeriod({ year, month, day: 16 });
+  if (!period) return false;
+  const [y, m, d] = period.due.split('-');
+  const lines = [
+    '<b>🧾 Cierre de período</b>',
+    '',
+    `Hoy cierra el período ${period.label}. Armar la cuenta de:`,
+    ...FRANQUICIAS.map(f => `• ${f.name}`),
+    '',
+    `Fecha de cobro: ${d}/${m}/${y}`,
+  ];
+  await enviarTelegram(lines.join('\n'));
+  return true;
+}
+
 async function recordatorios(spaceId, todayIso) {
   const snap = await db.collection('tasks')
     .where('project_id', '==', spaceId)
     .where('status', '==', 'pendiente')
     .get();
   const pendientes = snap.docs.map(d => d.data());
-  if (!pendientes || !pendientes.length) return;
+  if (!pendientes || !pendientes.length) return false;
 
   const tomorrow = new Date(`${todayIso}T00:00:00-03:00`);
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -142,7 +160,7 @@ async function recordatorios(spaceId, todayIso) {
   const hoy = pendientes.filter(t => t.due_date === todayIso);
   const mañana = pendientes.filter(t => t.due_date === tomorrowIso);
 
-  if (!atrasados.length && !hoy.length && !mañana.length) return;
+  if (!atrasados.length && !hoy.length && !mañana.length) return false;
 
   const lines = ['<b>📋 Cobros Franquicias</b>'];
   if (atrasados.length) {
@@ -158,6 +176,7 @@ async function recordatorios(spaceId, todayIso) {
     mañana.forEach(t => lines.push(`• ${t.title}`));
   }
   await enviarTelegram(lines.join('\n'));
+  return true;
 }
 
 async function main() {
@@ -169,7 +188,20 @@ async function main() {
   const period = buildPeriod(parts);
   if (period) await generarCobros(spaceId, period);
 
-  await recordatorios(spaceId, todayIso);
+  if (TEST) {
+    await enviarTelegram('✅ Prueba de click.1986: los avisos de cobros por Telegram funcionan.');
+    return;
+  }
+
+  // Candado: el aviso sale una sola vez por día (hay varias ventanas de ejecución).
+  const lock = db.collection('notifs').doc(todayIso);
+  if ((await lock.get()).exists) {
+    console.log('Aviso de hoy ya enviado.');
+    return;
+  }
+  const cierre = await avisoCierre(parts);
+  const recordado = await recordatorios(spaceId, todayIso);
+  if (cierre || recordado) await lock.set({ sentAt: new Date().toISOString() });
   console.log('Listo.');
 }
 
