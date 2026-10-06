@@ -766,6 +766,7 @@ body[data-density="compact"] .dash-card{padding:13px;}
       <div class="view-tab" id="tab-settings" onclick="setView('settings',null,this)">Config</div>
     </div>
     <div class="topbar-icon" onclick="enviarResumenTelegram()" title="Telegram"><span class="ui-icon ui-icon-bell"></span></div>
+    <button class="btn btn-ghost btn-sm" id="paste-btn" style="display:none" onclick="openPasteModal()" title="Crear tareas pegando un mensaje de WhatsApp">Pegar mensaje</button>
     <button class="btn btn-primary btn-sm" onclick="openTaskModal()"><span class="ui-icon ui-icon-plus" style="width:12px;height:12px;vertical-align:-2px"></span> Tarea</button>
   </div>
 
@@ -1043,7 +1044,7 @@ function setView(view,navEl,tabEl){
   document.querySelectorAll('.mobile-nav-item').forEach(el=>el.classList.remove('active'));
   const mob=document.getElementById('mob-'+view);if(mob)mob.classList.add('active');
 }
-function render(){renderSidebarSpaces();renderContent();}
+function render(){renderSidebarSpaces();renderContent();updatePasteBtn();}
 function renderContent(){
   renderSidebarSpaces();
   renderBreadcrumb();
@@ -1547,6 +1548,102 @@ function startNotificationScheduler(){
   setInterval(()=>{const now=localDateStr(0);const l=localStorage.getItem('click1986_last_notif');if(l!==now){checkDueTasks('daily');localStorage.setItem('click1986_last_notif',now);}},3600000);
 }
 window.enviarResumenTelegram=function(){checkDueTasks('daily');showToast('📨 Enviado a Telegram','success');}
+
+/* PEGAR MENSAJE (WhatsApp -> tareas del espacio Eventos) */
+const MESES_ES={enero:1,febrero:2,marzo:3,abril:4,mayo:5,junio:6,julio:7,agosto:8,septiembre:9,setiembre:9,octubre:10,noviembre:11,diciembre:12,ene:1,feb:2,mar:3,abr:4,may:5,jun:6,jul:7,ago:8,sep:9,set:9,oct:10,nov:11,dic:12};
+const DIAS_ES={domingo:0,lunes:1,martes:2,miercoles:3,jueves:4,viernes:5,sabado:6};
+function normTxt(s){return s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();}
+function findEventosSpace(){return state.projects.find(p=>/evento/i.test(p.name));}
+function updatePasteBtn(){const b=document.getElementById('paste-btn');if(!b)return;const p=getProject(state.filterProject);b.style.display=(p&&/evento/i.test(p.name))?'':'none';}
+function pad2(n){return String(n).padStart(2,'0');}
+function resolveYear(day,month,dow){
+  const today=new Date();today.setHours(0,0,0,0);const cy=today.getFullYear();
+  const limit=new Date(today);limit.setDate(limit.getDate()-7);
+  for(const y of [cy,cy+1]){
+    const d=new Date(y,month-1,day);
+    if(d.getMonth()!==month-1)continue;
+    if(d<limit)continue;
+    if(dow===undefined||d.getDay()===dow)return y;
+  }
+  return cy;
+}
+function parseDateLine(line){
+  const n=normTxt(line);
+  const meses=Object.keys(MESES_ES).sort((a,b)=>b.length-a.length).join('|');
+  const dias=Object.keys(DIAS_ES).join('|');
+  let m=n.match(new RegExp('(?:\\b('+dias+')\\b\\s*,?\\s*)?\\b(\\d{1,2})\\s*(?:de\\s+)?('+meses+')\\b'));
+  let day,month,dow;
+  if(m){dow=m[1]?DIAS_ES[m[1]]:undefined;day=+m[2];month=MESES_ES[m[3]];}
+  else{
+    m=n.match(new RegExp('(?:\\b('+dias+')\\b\\s*,?\\s*)?\\b(\\d{1,2})[\\/-](\\d{1,2})(?:[\\/-](\\d{2,4}))?\\b'));
+    if(!m)return null;
+    dow=m[1]?DIAS_ES[m[1]]:undefined;day=+m[2];month=+m[3];
+  }
+  if(!day||day>31||!month||month>12)return null;
+  const year=resolveYear(day,month,dow);
+  const residual=n.replace(m[0],'').replace(/[^a-z0-9]/g,'');
+  return{date:year+'-'+pad2(month)+'-'+pad2(day),onlyDate:residual.length<3};
+}
+function parseTimeLine(line){
+  const n=normTxt(line);
+  if(/armad|armar|montaje/.test(n))return'';
+  let m=n.match(/(\d{1,2})(?::(\d{2}))?\s*(?:a|-)\s*\d{1,2}(?::\d{2})?\s*hs/);
+  if(!m)m=n.match(/(\d{1,2})(?::(\d{2}))?\s*hs/);
+  if(!m)return'';
+  const h=+m[1];if(h>23)return'';
+  return pad2(h)+':'+(m[2]||'00');
+}
+function parseMessageRules(text){
+  const lines=text.replace(/\r/g,'').split('\n').map(l=>l.trim());
+  const blocks=[];let cur=null;
+  const hasEvento=lines.some(l=>/^evento\b/i.test(l));
+  for(const l of lines){
+    if(/^[-–—_=*\s]{3,}$/.test(l)){cur=null;continue;}
+    if(!l)continue;
+    if(!cur||(hasEvento&&/^evento\b/i.test(l))){cur={lines:[]};blocks.push(cur);}
+    cur.lines.push(l);
+  }
+  return blocks.map(b=>{
+    const head=b.lines[0].replace(/^evento\b\s*[:\-–]?\s*/i,'');
+    const parts=head.split(/\s*[-–—]{2,}\s*/).map(x=>x.trim()).filter(Boolean);
+    const title=(parts[0]||'Evento').trim();
+    const desc=[];if(parts.length>1)desc.push(parts.slice(1).join(' '));
+    const subtasks=[];let dueDate='',dueTime='';
+    for(const line of b.lines.slice(1)){
+      if(!dueDate){const d=parseDateLine(line);if(d){dueDate=d.date;if(d.onlyDate)continue;}}
+      if(!dueTime){const t=parseTimeLine(line);if(t)dueTime=t;}
+      if(/confirmar|pendiente|falta\b/i.test(normTxt(line)))subtasks.push(line);
+      else desc.push(line);
+    }
+    return{title,dueDate,dueTime,description:desc.join('\n'),subtasks};
+  });
+}
+function parseMessage(text){return parseMessageRules(text);}
+function openPasteModal(){
+  createModal('Pegar mensaje',`<div class="form-group"><label class="form-label">Mensaje de WhatsApp</label><textarea class="form-textarea" id="pm-text" rows="12" style="min-height:220px" placeholder="Pegá acá el mensaje. Puede traer uno o varios eventos."></textarea></div><div style="font-size:11.5px;color:var(--text3)">Después vas a poder revisar y corregir cada tarea antes de guardarla.</div>`,()=>{
+    const text=document.getElementById('pm-text').value;
+    if(!text.trim()){showToast('Pegá un mensaje','error');return;}
+    const evs=parseMessage(text);
+    if(!evs.length){showToast('No encontré eventos en el mensaje','error');return;}
+    showPastePreview(evs);
+  },'Analizar');
+}
+function showPastePreview(evs){
+  const sp=getProject(state.filterProject)&&/evento/i.test(getProject(state.filterProject).name)?getProject(state.filterProject):findEventosSpace();
+  if(!sp){showToast('No encontré el espacio de eventos','error');return;}
+  const body=evs.map((e,i)=>`<div style="border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px"><div class="form-group"><label class="form-label">Título</label><input class="form-input" id="pm-title-${i}" value="${esc(e.title)}"></div><div class="form-row"><div class="form-group"><label class="form-label">Fecha</label><input class="form-input" type="date" id="pm-date-${i}" value="${e.dueDate}"></div><div class="form-group"><label class="form-label">Hora</label><input class="form-input" type="time" id="pm-time-${i}" value="${e.dueTime}"></div></div><div class="form-group"><label class="form-label">Descripción</label><textarea class="form-textarea" id="pm-desc-${i}">${esc(e.description)}</textarea></div><div class="form-group"><label class="form-label">Pendientes (una por línea)</label><textarea class="form-textarea" id="pm-subs-${i}" style="min-height:48px">${esc(e.subtasks.join('\n'))}</textarea></div></div>`).join('');
+  createModal(`Revisar ${evs.length} ${evs.length===1?'evento':'eventos'} — ${esc(sp.name)}`,body,async()=>{
+    let n=0;
+    for(let i=0;i<evs.length;i++){
+      const title=document.getElementById('pm-title-'+i).value.trim();
+      if(!title)continue;
+      const subs=document.getElementById('pm-subs-'+i).value.split('\n').map(s=>s.trim()).filter(Boolean).map(text=>({text,done:false}));
+      const t={id:uid(),title,description:document.getElementById('pm-desc-'+i).value,status:'pendiente',priority:'normal',projectId:sp.id,dueDate:document.getElementById('pm-date-'+i).value,dueTime:document.getElementById('pm-time-'+i).value,comments:[],subtasks:subs,tags:[],createdAt:new Date().toISOString()};
+      state.tasks.push(t);await saveTask(t);n++;
+    }
+    closeModal();render();showToast(`✓ ${n} ${n===1?'tarea creada':'tareas creadas'}`,'success');
+  },'Crear tareas');
+}
 
 /* SWIPE GESTURES FOR MOBILE */
 let taskHammerInstances=new Map();
