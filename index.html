@@ -1046,6 +1046,7 @@ function setView(view,navEl,tabEl){
 }
 function render(){renderSidebarSpaces();renderContent();updatePasteBtn();}
 function renderContent(){
+  updatePasteBtn();
   renderSidebarSpaces();
   renderBreadcrumb();
   const c=document.getElementById('main-content');
