@@ -1,4 +1,4 @@
-const CACHE_NAME = 'click1986-v19';
+const CACHE_NAME = 'click1986-v20';
 const ASSETS = [
   './',
   './index.html',

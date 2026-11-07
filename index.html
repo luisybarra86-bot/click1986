@@ -1913,7 +1913,17 @@ function confirmDeleteClient(id){const c=getClient(id);if(!c)return;const n=clie
   document.getElementById('modal-container').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:380px"><div class="modal-header"><div class="modal-title">Eliminar cliente</div><button class="modal-close" onclick="closeModal()">✕</button></div><div class="modal-body"><p style="font-size:13px;line-height:1.6;color:var(--text2)">¿Eliminar a "${esc(c.name)}" y sus notas?${n?` Sus ${n} pedido${n!==1?'s':''} se mantienen, sin cliente asignado.`:''}</p><p style="font-size:11px;color:#ef5350;margin-top:4px">Esta acción no se puede deshacer.</p></div><div class="modal-footer"><button class="btn btn-ghost btn-sm" onclick="openClientDetail('${id}')">Cancelar</button><button class="btn btn-danger btn-sm" onclick="deleteClient('${id}')">Eliminar</button></div></div></div>`;}
 async function deleteClient(id){for(const t of clientOrders(id)){t.clientId='';await saveTask(t);}state.clients=state.clients.filter(c=>c.id!==id);try{await db.collection('clients').doc(String(id)).delete();}catch(e){dbError(e,'No se pudo eliminar el cliente');}closeModal();renderContent();showToast('Cliente eliminado');}
 async function ensureOrdersSpace(){let p=state.projects.find(x=>/^pedidos$/i.test(x.name.trim()));if(!p){p={id:uid(),name:'Pedidos',color:'#22c55e'};state.projects.push(p);await saveSpace(p);}return p.id;}
-async function newClientOrder(id){const pid=await ensureOrdersSpace();openTaskModal('pendiente','',id,pid);}
+let orderDraft=null;
+function getOT(id){return id==='draft'?orderDraft:state.tasks.find(x=>x.id===id);}
+async function saveOT(t){if(t.id==='draft')return;await saveTask(t);}
+async function newClientOrder(id){
+  const pid=await ensureOrdersSpace();
+  orderDraft={id:'draft',title:'',description:'',status:'pendiente',priority:'normal',projectId:pid,clientId:id||'',dueDate:'',dueTime:'',comments:[],subtasks:[],tags:[],items:[]};
+  createModal('Nuevo pedido',`<div class="form-group"><label class="form-label">Cliente *</label><select class="form-select" id="o-client"><option value="">— elegí un cliente —</option>${state.clients.slice().sort((a,b)=>a.name.localeCompare(b.name,'es')).map(c=>`<option value="${c.id}" ${c.id===id?'selected':''}>${esc(c.name)}${c.business?' · '+esc(c.business):''}</option>`).join('')}</select></div><div class="form-row"><div class="form-group"><label class="form-label">Fecha de entrega</label><input class="form-input" type="date" id="o-due"></div><div class="form-group"><label class="form-label">Hora</label><input class="form-input" type="time" id="o-time"></div></div><div class="form-group"><label class="form-label">Notas</label><textarea class="form-textarea" id="o-desc" placeholder="Ej: entregar por la mañana, paga a fin de mes..."></textarea></div><div class="comments-title">🧾 Productos del pedido</div><div id="order-items">${renderOrderItems(orderDraft)}</div>`,
+  async()=>{const cid=document.getElementById('o-client').value;if(!cid){showToast('Elegí un cliente','error');return;}
+    const t=Object.assign(orderDraft,{id:uid(),title:'Pedido - '+clientName(cid),clientId:cid,description:document.getElementById('o-desc').value,dueDate:document.getElementById('o-due').value,dueTime:document.getElementById('o-time').value});
+    orderDraft=null;state.tasks.push(t);await saveTask(t);await autoActivateClient(cid);closeModal();render();showToast('✓ Pedido guardado','success');if(state.currentView==='clients')openClientDetail(cid);},'Guardar pedido');
+}
 async function autoActivateClient(id){const c=id?getClient(id):null;if(!c||['activo','descartado'].includes(c.status))return;c.status='activo';await saveClient(c);showToast(`👤 ${c.name} pasó a Cliente activo`,'success');}
 </script>
 <style>
@@ -1932,27 +1942,27 @@ function orderTotal(t){return(t.items||[]).reduce((a,it)=>a+itemSub(it),0);}
 function totalChip(t){return(t.items||[]).length?`<span class="cl-chip-task" style="background:rgba(56,189,248,.15);color:var(--blue)">🧾 ${money(orderTotal(t))}</span>`:'';}
 function renderOrderItems(t){
   const items=t.items||[];
-  const rows=items.map((it,i)=>`<div class="oi-row"><div class="oi-name">${esc(it.name)}</div><input class="form-input oi-in" inputmode="decimal" value="${it.qty}" onchange="updateOrderItem('${t.id}',${i},'qty',this.value)"><select class="form-select oi-in" onchange="updateOrderItem('${t.id}',${i},'mode',this.value)"><option value="un" ${it.mode!=='paq'?'selected':''}>unidad</option>${(it.units||1)>1?`<option value="paq" ${it.mode==='paq'?'selected':''}>paq. x${it.units}</option>`:''}</select><input class="form-input oi-in" inputmode="decimal" value="${it.unitPrice}" title="Precio por unidad" onchange="updateOrderItem('${t.id}',${i},'unitPrice',this.value)"><div class="pr-num"><b>${money(itemSub(it))}</b></div><button class="icon-btn" onclick="removeOrderItem('${t.id}',${i})" title="Quitar">✕</button></div>`).join('');
-  return`${items.length?`<div class="oi-row oi-head"><div>Producto</div><div>Cant.</div><div>Medida</div><div>$ c/u</div><div class="pr-num">Subtotal</div><div></div></div>${rows}<div class="oi-total"><span>Total</span><b>${money(orderTotal(t))}</b></div>`:`<div style="font-size:11.5px;color:var(--text3);padding:5px 0">Sin productos. Agregá los del catálogo o escribí uno libre.</div>`}<div class="oi-add"><input class="form-input" id="oi-new" list="oi-list" placeholder="Buscar producto..." style="flex:1"><datalist id="oi-list">${state.products.map(p=>`<option value="${esc(p.name)}">`).join('')}</datalist><button class="btn btn-primary btn-sm" onclick="addOrderItem('${t.id}')">Agregar</button></div>${items.length?`<div class="cl-actions" style="margin-top:8px"><button onclick="orderWhatsApp('${t.id}')">💬 Enviar resumen por WhatsApp</button></div>`:''}`;
+  const rows=items.map((it,i)=>`<div class="oi-row"><div class="oi-name">${esc(it.name)}</div><input class="form-input oi-in" type="tel" inputmode="decimal" value="${it.qty}" onchange="updateOrderItem('${t.id}',${i},'qty',this.value)"><select class="form-select oi-in" onchange="updateOrderItem('${t.id}',${i},'mode',this.value)"><option value="un" ${it.mode!=='paq'?'selected':''}>unidad</option>${(it.units||1)>1?`<option value="paq" ${it.mode==='paq'?'selected':''}>paq. x${it.units}</option>`:''}</select><input class="form-input oi-in" type="tel" inputmode="decimal" value="${it.unitPrice}" title="Precio por unidad" onchange="updateOrderItem('${t.id}',${i},'unitPrice',this.value)"><div class="pr-num"><b>${money(itemSub(it))}</b></div><button class="icon-btn" onclick="removeOrderItem('${t.id}',${i})" title="Quitar">✕</button></div>`).join('');
+  return`${items.length?`<div class="oi-row oi-head"><div>Producto</div><div>Cant.</div><div>Medida</div><div>$ c/u</div><div class="pr-num">Subtotal</div><div></div></div>${rows}<div class="oi-total"><span>Total</span><b>${money(orderTotal(t))}</b></div>`:`<div style="font-size:11.5px;color:var(--text3);padding:5px 0">Sin productos. Agregá los del catálogo o escribí uno libre.</div>`}<div class="oi-add"><input class="form-input" type="search" id="oi-new" list="oi-list" placeholder="Buscar producto..." style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();addOrderItem('${t.id}')}"><datalist id="oi-list">${state.products.map(p=>`<option value="${esc(p.name)}">`).join('')}</datalist><button class="btn btn-primary btn-sm" onclick="addOrderItem('${t.id}')">Agregar</button></div>${items.length?`<div class="cl-actions" style="margin-top:8px"><button onclick="orderWhatsApp('${t.id}')">💬 Enviar resumen por WhatsApp</button></div>`:''}`;
 }
 function refreshOrderItems(t){const el=document.getElementById('order-items');if(el)el.innerHTML=renderOrderItems(t);}
 async function addOrderItem(taskId){
-  const t=state.tasks.find(x=>x.id===taskId);const inp=document.getElementById('oi-new');const name=inp?inp.value.trim():'';if(!t||!name)return;
+  const t=getOT(taskId);const inp=document.getElementById('oi-new');const name=inp?inp.value.trim():'';if(!t||!name)return;
   const n=normTxt(name);let p=state.products.find(x=>normTxt(x.name)===n);
   if(!p){const m=state.products.filter(x=>normTxt(x.name).includes(n));if(m.length===1)p=m[0];}
   const units=p?(p.units||1):1;const price=p?(p.price!=null?p.price:(p.cost!=null?p.cost:0)):0;
   if(!p)showToast('Producto libre: cargale el precio','');
   (t.items=t.items||[]).push({id:uid(),productId:p?p.id:'',name:p?p.name:name,units,mode:units>1?'paq':'un',qty:1,unitPrice:price});
-  await saveTask(t);refreshOrderItems(t);
+  await saveOT(t);refreshOrderItems(t);
 }
 async function updateOrderItem(taskId,i,field,val){
-  const t=state.tasks.find(x=>x.id===taskId);const it=t&&t.items&&t.items[i];if(!it)return;
+  const t=getOT(taskId);const it=t&&t.items&&t.items[i];if(!it)return;
   if(field==='mode')it.mode=val;else{const n=parseNum(val);it[field]=n==null?0:Math.max(0,n);}
-  await saveTask(t);refreshOrderItems(t);
+  await saveOT(t);refreshOrderItems(t);
 }
-async function removeOrderItem(taskId,i){const t=state.tasks.find(x=>x.id===taskId);if(!t||!t.items)return;t.items.splice(i,1);await saveTask(t);refreshOrderItems(t);}
+async function removeOrderItem(taskId,i){const t=getOT(taskId);if(!t||!t.items)return;t.items.splice(i,1);await saveOT(t);refreshOrderItems(t);}
 function orderWhatsApp(taskId){
-  const t=state.tasks.find(x=>x.id===taskId);if(!t)return;const c=t.clientId?getClient(t.clientId):null;
+  const t=getOT(taskId);if(!t)return;const c=t.clientId?getClient(t.clientId):null;
   const lines=(t.items||[]).map(it=>`• ${it.qty} ${it.mode==='paq'?'paq. x'+it.units:'un.'} ${it.name}: ${money(itemSub(it))}`);
   const txt=`Pedido${c?' para '+c.name:''}${t.dueDate?' - entrega '+formatDate(t.dueDate,t.dueTime):''}\n${lines.join('\n')}\nTotal: ${money(orderTotal(t))}`;
   const base=c&&c.phone?waLink(c.phone):'https://wa.me/';window.open(base+'?text='+encodeURIComponent(txt),'_blank');
