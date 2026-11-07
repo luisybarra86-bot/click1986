@@ -857,9 +857,15 @@ let authEmail='';
 function showLogin(){
   if(document.getElementById('login-overlay'))return;
   const el=document.createElement('div');el.id='login-overlay';
-  el.innerHTML=`<div style="position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999"><form onsubmit="doLogin(event)" style="display:flex;flex-direction:column;gap:14px;width:min(320px,90vw)"><div style="font-family:Space Grotesk,sans-serif;font-size:26px;font-weight:700;text-align:center;background:linear-gradient(135deg,#22d3ee,#f97316,#84cc16);-webkit-background-clip:text;-webkit-text-fill-color:transparent">click.1986</div><input class="form-input" type="email" id="login-email" placeholder="Email" autocomplete="username" required><input class="form-input" type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password" required><button class="btn btn-primary" type="submit" id="login-btn">Entrar</button><div id="login-error" style="font-size:12px;color:#ef5350;text-align:center;min-height:16px"></div></form></div>`;
+  el.innerHTML=`<div style="position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999"><form onsubmit="doLogin(event)" style="display:flex;flex-direction:column;gap:14px;width:min(320px,90vw)"><div style="font-family:Space Grotesk,sans-serif;font-size:26px;font-weight:700;text-align:center;background:linear-gradient(135deg,#22d3ee,#f97316,#84cc16);-webkit-background-clip:text;-webkit-text-fill-color:transparent">click.1986</div><input class="form-input" type="email" id="login-email" placeholder="Email" autocomplete="username" required><input class="form-input" type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password" required><button class="btn btn-primary" type="submit" id="login-btn">Entrar</button><div id="login-error" style="font-size:12px;color:#ef5350;text-align:center;min-height:16px"></div><a href="#" onclick="resetPassword(event)" style="font-size:12px;color:var(--text2);text-align:center;text-decoration:underline">Olvidé mi contraseña</a></form></div>`;
   document.body.appendChild(el);
   document.getElementById('login-email').focus();
+}
+async function resetPassword(e){
+  e.preventDefault();const errEl=document.getElementById('login-error');const email=document.getElementById('login-email').value.trim();
+  if(!email){errEl.style.color='#ef5350';errEl.textContent='Escribí tu email arriba y volvé a tocar el link';return;}
+  try{await fbAuth.sendPasswordResetEmail(email);errEl.style.color='#22c55e';errEl.textContent='Listo: revisá tu correo (y spam) para crear una contraseña nueva';}
+  catch(err){console.error(err);errEl.style.color='#ef5350';errEl.textContent='No se pudo enviar el correo, revisá el email';}
 }
 function hideLogin(){const el=document.getElementById('login-overlay');if(el)el.remove();}
 async function doLogin(e){
@@ -1855,7 +1861,7 @@ async function handleProductFile(e){
 <script>
 /* ===== CLIENTES (agenda de ventas) ===== */
 const CLIENT_STATUS={porvisitar:{l:'Por visitar',c:'#38bdf8'},visitado:{l:'Visitado',c:'#a78bfa'},seguimiento:{l:'Seguimiento',c:'#f59e0b'},activo:{l:'Cliente activo',c:'#22c55e'},inactivo:{l:'Inactivo',c:'#94a3b8'},descartado:{l:'Descartado',c:'#ef4444'}};
-const CLIENT_TYPES=['Panadería','Pastelería','Pizzería','Kiosco','Almacén','Restaurante','Otro'];
+const CLIENT_TYPES=['Panadería','Pastelería','Pizzería','Kiosco','Almacén','Restaurante','Sanguchería','Hamburguesería','Cervecería','Cadena','Sándwiches y pizzas','Otro'];
 let clientFilter='all';
 function getClient(id){return state.clients.find(c=>c.id===id);}
 function clientName(id){const c=id?getClient(id):null;return c?c.name:'';}
