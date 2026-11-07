@@ -733,6 +733,7 @@ body[data-density="compact"] .dash-card{padding:13px;}
   <div class="nav-item" id="nav-list" data-label="Lista" onclick="setView('list',this)"><span class="nav-icon ui-icon ui-icon-list"></span><span class="nav-label">Lista</span></div>
   <div class="nav-item" id="nav-calendar" data-label="Calendario" onclick="setView('calendar',this)"><span class="nav-icon ui-icon ui-icon-calendar"></span><span class="nav-label">Calendario</span></div>
   <div class="nav-item" id="nav-clients" data-label="Clientes" onclick="setView('clients',this)"><span class="nav-icon ui-icon ui-icon-users"></span><span class="nav-label">Clientes</span></div>
+  <div class="nav-item" id="nav-products" data-label="Productos" onclick="setView('products',this)"><span class="nav-icon ui-icon ui-icon-box"></span><span class="nav-label">Productos</span></div>
   <div class="nav-item" id="nav-projects" data-label="Espacios" onclick="setView('projects',this)"><span class="nav-icon ui-icon ui-icon-folder"></span><span class="nav-label">Espacios</span></div>
   <div class="nav-item" id="nav-gallery" data-label="Gallery" onclick="setView('gallery',this)"><span class="nav-icon ui-icon ui-icon-gallery"></span><span class="nav-label">Gallery</span></div>
   <div class="nav-item" id="nav-settings" data-label="Configuración" onclick="setView('settings',this)"><span class="nav-icon ui-icon ui-icon-settings"></span><span class="nav-label">Configuración</span></div>
@@ -830,6 +831,7 @@ body[data-density="compact"] .dash-card{padding:13px;}
   <button class="mobile-nav-item" id="mob-list" onclick="setView('list',this)"><span class="ui-icon ui-icon-list"></span><span>Lista</span></button>
   <button class="mobile-nav-item" id="mob-calendar" onclick="setView('calendar',this)"><span class="ui-icon ui-icon-calendar"></span><span>Cal</span></button>
   <button class="mobile-nav-item" id="mob-clients" onclick="setView('clients',this)"><span class="ui-icon ui-icon-users"></span><span>Clientes</span></button>
+  <button class="mobile-nav-item" id="mob-products" onclick="setView('products',this)"><span class="ui-icon ui-icon-box"></span><span>Productos</span></button>
   <button class="mobile-nav-item" id="mob-settings" onclick="setView('settings',this)"><span class="ui-icon ui-icon-settings"></span><span>Config</span></button>
 </nav>
 
@@ -846,7 +848,7 @@ const PRIORITY_LABELS={urgent:'Urgente',high:'Alta',normal:'Normal',low:'Baja'};
 const PRIO_COLORS={urgent:'#f43f5e',high:'#f97316',normal:'#22d3ee',low:'#94a3b8'};
 let TG_TOKEN=localStorage.getItem('click1986_tg_token')||'';
 let TG_CHAT=localStorage.getItem('click1986_tg_chat')||'';
-let state={projects:[],tasks:[],clients:[],currentView:'dashboard',filterProject:null,calendarDate:new Date(),theme:'dark',userName:'Luis',density:'comfortable',gallerySize:'m',gallerySort:'priority'};
+let state={projects:[],tasks:[],clients:[],products:[],currentView:'dashboard',filterProject:null,calendarDate:new Date(),theme:'dark',userName:'Luis',density:'comfortable',gallerySize:'m',gallerySort:'priority'};
 let dragId=null;
 let completedSectionOpen=false;
 
@@ -893,6 +895,7 @@ async function loadState(){
     const tk=(await db.collection('tasks').orderBy('created_at').get()).docs.map(d=>d.data());
     state.tasks=tk.map(t=>({id:t.id,title:t.title,description:t.description||'',status:t.status,priority:t.priority,projectId:t.project_id,clientId:t.client_id||'',dueDate:t.due_date||'',dueTime:t.due_time||'',comments:t.comments||[],subtasks:t.subtasks||[],tags:t.tags||[],createdAt:t.created_at,completedAt:t.completed_at||''}));
     try{state.clients=(await db.collection('clients').get()).docs.map(d=>mapClient(d.data()));}catch(e){console.error(e);state.clients=[];}
+    try{state.products=(await db.collection('products').get()).docs.map(d=>mapProduct(d.data()));}catch(e){console.error(e);state.products=[];}
     if(!state.projects.length){const def={id:uid(),name:'Personal',color:'#0891b2'};await saveSpace(def);state.projects=[def];}
   }catch(err){console.error(err);showToast('Error conectando a la nube','error');}
   showLoading(false);render();
@@ -1040,7 +1043,7 @@ function setView(view,navEl,tabEl){
   document.querySelectorAll('.view-tab').forEach(el=>el.classList.remove('active'));
   const nv=document.getElementById('nav-'+view);if(nv)nv.classList.add('active');else if(navEl)navEl.classList.add('active');
   const tv=document.getElementById('tab-'+view);if(tv)tv.classList.add('active');else if(tabEl)tabEl.classList.add('active');
-  const titles={clients:'Clientes',dashboard:'Dashboard',kanban:'Kanban',list:'Lista de Tareas',calendar:'Calendario',projects:'Espacios',gallery:'Gallery',settings:'Configuración'};
+  const titles={products:'Productos',clients:'Clientes',dashboard:'Dashboard',kanban:'Kanban',list:'Lista de Tareas',calendar:'Calendario',projects:'Espacios',gallery:'Gallery',settings:'Configuración'};
   document.getElementById('view-title').textContent=titles[view]||view;
   renderContent();if(window.innerWidth<=700)closeSidebar();
   // Sync mobile nav
@@ -1060,6 +1063,7 @@ function renderContent(){
   else if(state.currentView==='kanban')c.innerHTML=renderKanban();
   else if(state.currentView==='list')c.innerHTML=renderList();
   else if(state.currentView==='calendar'){c.innerHTML=renderCalendar();bindCalendar();}
+  else if(state.currentView==='products')c.innerHTML=renderProducts();
   else if(state.currentView==='clients')c.innerHTML=renderClients();
   else if(state.currentView==='projects')c.innerHTML=renderProjects();
   else if(state.currentView==='gallery')c.innerHTML=renderGallery();
@@ -1516,9 +1520,9 @@ function openProjectModal(){createModal('Nuevo Espacio',`<div class="form-group"
 function selectColor(el){document.querySelectorAll('.color-dot-pick').forEach(d=>d.classList.remove('selected'));el.classList.add('selected');}
 
 /* BACKUP */
-function exportBackup(){const data={version:3,exportedAt:new Date().toISOString(),projects:state.projects,tasks:state.tasks,clients:state.clients};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`click1986-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href);showToast('✓ Backup exportado','success');}
+function exportBackup(){const data={version:3,exportedAt:new Date().toISOString(),projects:state.projects,tasks:state.tasks,clients:state.clients,products:state.products};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`click1986-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href);showToast('✓ Backup exportado','success');}
 function importBackup(){document.getElementById('import-file').click();}
-async function handleImport(e){const file=e.target.files[0];if(!file)return;try{const text=await file.text();const data=JSON.parse(text);if(!data.projects||!data.tasks){showToast('Archivo inválido','error');return;}if(!confirm(`¿Importar ${data.projects.length} espacios y ${data.tasks.length} tareas?`))return;for(const p of data.projects){if(!state.projects.find(x=>x.id===p.id)){state.projects.push(p);await saveSpace(p);}}for(const t of data.tasks){if(!state.tasks.find(x=>x.id===t.id)){if(!t.subtasks)t.subtasks=[];if(!t.tags)t.tags=[];state.tasks.push(t);await saveTask(t);}}for(const c of (data.clients||[])){if(!state.clients.find(x=>x.id===c.id)){state.clients.push(c);await saveClient(c);}}render();showToast(`✓ Importados: ${data.tasks.length} tareas`,'success');}catch(err){console.error(err);showToast('Error al importar','error');}e.target.value='';}
+async function handleImport(e){const file=e.target.files[0];if(!file)return;try{const text=await file.text();const data=JSON.parse(text);if(!data.projects||!data.tasks){showToast('Archivo inválido','error');return;}if(!confirm(`¿Importar ${data.projects.length} espacios y ${data.tasks.length} tareas?`))return;for(const p of data.projects){if(!state.projects.find(x=>x.id===p.id)){state.projects.push(p);await saveSpace(p);}}for(const t of data.tasks){if(!state.tasks.find(x=>x.id===t.id)){if(!t.subtasks)t.subtasks=[];if(!t.tags)t.tags=[];state.tasks.push(t);await saveTask(t);}}for(const c of (data.clients||[])){if(!state.clients.find(x=>x.id===c.id)){state.clients.push(c);await saveClient(c);}}for(const c of (data.products||[])){if(!state.products.find(x=>x.id===c.id)){state.products.push(c);await saveProduct(c);}}render();showToast(`✓ Importados: ${data.tasks.length} tareas`,'success');}catch(err){console.error(err);showToast('Error al importar','error');}e.target.value='';}
 
 /* MODAL HELPERS */
 function createModal(title,body,onConfirm,confirmText='Guardar'){const container=document.getElementById('modal-container');container.innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-header"><div class="modal-title">${title}</div><button class="modal-close" onclick="closeModal()">✕</button></div><div class="modal-body">${body}</div><div class="modal-footer"><button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancelar</button><button class="btn btn-primary btn-sm" id="modal-confirm">${confirmText}</button></div></div></div>`;document.getElementById('modal-confirm').onclick=onConfirm;setTimeout(()=>{container.querySelectorAll('input[type="text"],input:not([type])').forEach(inp=>inp.addEventListener('keydown',e=>{if(e.key==='Enter')onConfirm();}));},50);}
@@ -1749,6 +1753,85 @@ if(localStorage.getItem('click1986_sidebar_icon')==='1'){
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(e=>console.log('SW:',e));});}
 let deferredPrompt2;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt2=e;const topbar=document.querySelector('.topbar');if(topbar&&!document.getElementById('install-btn')){const btn=document.createElement('button');btn.id='install-btn';btn.className='btn btn-ghost btn-sm';btn.style.cssText='border-color:var(--accent);color:var(--accent)';btn.innerHTML='⬇';btn.onclick=()=>{deferredPrompt2.prompt();deferredPrompt2.userChoice.then(()=>{deferredPrompt2=null;btn.remove();});};topbar.insertBefore(btn,topbar.querySelector('.btn-primary'));}});
+</script>
+<style>
+.ui-icon-box::before{width:12px;height:10px;border:2px solid currentColor;border-radius:2px;left:2px;bottom:2px;}
+.ui-icon-box::after{width:12px;height:3px;background:currentColor;left:2px;top:3px;border-radius:1px;}
+.pr-row{display:grid;grid-template-columns:minmax(0,2.4fr) minmax(0,1.2fr) .9fr .9fr .6fr;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border);font-size:12.5px;cursor:pointer;}
+.pr-row:hover{background:var(--surface2,rgba(127,127,127,.08));}
+.pr-head{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);font-weight:700;cursor:default;}
+.pr-head:hover{background:none;}
+.pr-name{font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;}
+.pr-sub{font-size:11px;color:var(--text3);font-weight:400;}
+.pr-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.pr-num{text-align:right;font-variant-numeric:tabular-nums;}
+@media(max-width:700px){.pr-row{grid-template-columns:minmax(0,2fr) .9fr .9fr;}.pr-row>:nth-child(2),.pr-row>:nth-child(5){display:none;}}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* ===== PRODUCTOS (listas de precios de proveedores) ===== */
+let prodSupplier='all';
+function mapProduct(d){return{id:d.id,supplier:d.supplier||'',name:d.name,pack:d.pack||'',code:d.code||'',cost:d.cost==null?null:d.cost,price:d.price==null?null:d.price,updatedAt:d.updated_at||'',createdAt:d.created_at};}
+function prodDoc(p){return{id:p.id,supplier:p.supplier||'',name:p.name,pack:p.pack||'',code:p.code||'',cost:p.cost==null?null:p.cost,price:p.price==null?null:p.price,updated_at:p.updatedAt||'',created_at:p.createdAt||''};}
+async function saveProduct(p){try{if(!p.createdAt)p.createdAt=new Date().toISOString();p.updatedAt=new Date().toISOString();await db.collection('products').doc(String(p.id)).set(prodDoc(p));}catch(e){dbError(e,'No se pudo guardar el producto');}}
+function money(n){return n==null||n===''?'—':'$'+Number(n).toLocaleString('es-AR',{maximumFractionDigits:2});}
+function parseNum(v){if(v==null||v==='')return null;if(typeof v==='number')return isFinite(v)?v:null;let s=String(v).replace(/[^\d.,-]/g,'');if(!s)return null;if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');else if(/^-?\d{1,3}(\.\d{3})+$/.test(s))s=s.replace(/\./g,'');const n=parseFloat(s);return isFinite(n)?n:null;}
+function prodKey(sup,name){return normTxt(sup.trim())+'|'+normTxt(name.trim());}
+function suppliers(){return[...new Set(state.products.map(p=>p.supplier).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));}
+function setProdSupplier(s){prodSupplier=s;renderContent();}
+function renderProducts(){
+  const q=getSearch();const sups=suppliers();
+  let list=state.products.slice();
+  if(prodSupplier!=='all')list=list.filter(p=>p.supplier===prodSupplier);
+  if(q)list=list.filter(p=>[p.name,p.supplier,p.code,p.pack].join(' ').toLowerCase().includes(q));
+  list.sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  const chips=`<div class="cl-chips"><div class="cl-chip ${prodSupplier==='all'?'on':''}" style="${prodSupplier==='all'?'background:var(--accent)':''}" onclick="setProdSupplier('all')">Todos ${state.products.length}</div>${sups.map(s=>`<div class="cl-chip ${prodSupplier===s?'on':''}" style="${prodSupplier===s?'background:var(--accent)':''}" onclick="setProdSupplier(${esc(JSON.stringify(s)).replace(/"/g,'&quot;')})">${esc(s)} ${state.products.filter(p=>p.supplier===s).length}</div>`).join('')}</div>`;
+  const rows=list.slice(0,400).map(p=>{const m=p.cost&&p.price?Math.round((p.price-p.cost)/p.cost*100)+'%':'—';return`<div class="pr-row" onclick="openProductModal('${p.id}')"><div class="pr-name">${esc(p.name)}${p.pack?`<div class="pr-sub">${esc(p.pack)}${p.code?' · '+esc(p.code):''}</div>`:''}</div><div class="cl-sub">${esc(p.supplier)}</div><div class="pr-num">${money(p.cost)}</div><div class="pr-num">${money(p.price)}</div><div class="pr-num cl-sub">${m}</div></div>`;}).join('');
+  return`<div class="cl-wrap animate-fade-in"><div class="cl-top"><div class="projects-heading">Productos</div><div class="cl-actions"><button onclick="openProductModal()">+ Nuevo</button><button onclick="document.getElementById('prod-file').click()">📥 Importar Excel/CSV</button>${prodSupplier!=='all'?`<button onclick="bulkAdjust()">％ Ajustar precios</button>`:''}</div></div><input type="file" id="prod-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleProductFile(event)">${chips}${list.length?`<div class="pr-box"><div class="pr-row pr-head"><div>Producto</div><div>Proveedor</div><div class="pr-num">Costo</div><div class="pr-num">Venta</div><div class="pr-num">Margen</div></div>${rows}</div>${list.length>400?`<div class="cl-sub">Mostrando 400 de ${list.length}. Usá el buscador para filtrar.</div>`:''}`:`<div class="empty-state" style="height:140px"><span>${state.products.length?'Sin resultados':'Todavía no cargaste productos. Importá la lista de un proveedor o tocá "Nuevo".'}</span></div>`}</div>`;
+}
+function openProductModal(id){
+  const p=id?state.products.find(x=>x.id===id):null;const v=k=>esc(p&&p[k]!=null?p[k]:'');
+  createModal(p?'Editar producto':'Nuevo producto',`<div class="form-group"><label class="form-label">Producto *</label><input class="form-input" id="p-name" value="${v('name')}"></div><div class="form-row"><div class="form-group"><label class="form-label">Proveedor</label><input class="form-input" id="p-sup" list="p-sup-list" value="${v('supplier')||esc(prodSupplier!=='all'?prodSupplier:'')}"><datalist id="p-sup-list">${suppliers().map(s=>`<option value="${esc(s)}">`).join('')}</datalist></div><div class="form-group"><label class="form-label">Presentación</label><input class="form-input" id="p-pack" value="${v('pack')}" placeholder="Bolsa 25 kg"></div></div><div class="form-row"><div class="form-group"><label class="form-label">Costo</label><input class="form-input" id="p-cost" inputmode="decimal" value="${v('cost')}"></div><div class="form-group"><label class="form-label">Precio de venta</label><input class="form-input" id="p-price" inputmode="decimal" value="${v('price')}"></div></div><div class="form-group"><label class="form-label">Código</label><input class="form-input" id="p-code" value="${v('code')}"></div>${p?`<button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">🗑 Eliminar producto</button>`:''}`,
+  async()=>{const name=document.getElementById('p-name').value.trim();if(!name){showToast('Ingresá el producto','error');return;}
+    const data={name,supplier:document.getElementById('p-sup').value.trim(),pack:document.getElementById('p-pack').value.trim(),code:document.getElementById('p-code').value.trim(),cost:parseNum(document.getElementById('p-cost').value),price:parseNum(document.getElementById('p-price').value)};
+    let pr=p;if(pr)Object.assign(pr,data);else{pr={id:uid(),...data};state.products.push(pr);}
+    await saveProduct(pr);closeModal();renderContent();showToast('✓ Producto guardado','success');},p?'Guardar':'Crear');
+}
+async function deleteProduct(id){if(!confirm('¿Eliminar este producto? No se puede deshacer.'))return;state.products=state.products.filter(p=>p.id!==id);try{await db.collection('products').doc(String(id)).delete();}catch(e){dbError(e,'No se pudo eliminar');}closeModal();renderContent();showToast('Producto eliminado');}
+async function bulkAdjust(){
+  const list=state.products.filter(p=>p.supplier===prodSupplier);const raw=prompt(`Ajustar precios de ${prodSupplier} (${list.length} productos).\nEscribí el porcentaje (ej: 8 sube 8%, -5 baja 5%):`);if(raw==null)return;
+  const pct=parseNum(raw);if(pct==null||!pct){showToast('Porcentaje inválido','error');return;}
+  if(!confirm(`¿${pct>0?'Subir':'Bajar'} ${Math.abs(pct)}% costo y venta de ${list.length} productos de ${prodSupplier}?`))return;
+  const f=1+pct/100;list.forEach(p=>{if(p.cost!=null)p.cost=Math.round(p.cost*f*100)/100;if(p.price!=null)p.price=Math.round(p.price*f*100)/100;});
+  await commitProducts(list);renderContent();showToast('✓ Precios actualizados','success');}
+async function commitProducts(list){const now=new Date().toISOString();try{for(let i=0;i<list.length;i+=400){const b=db.batch();list.slice(i,i+400).forEach(p=>{if(!p.createdAt)p.createdAt=now;p.updatedAt=now;b.set(db.collection('products').doc(String(p.id)),prodDoc(p));});await b.commit();}}catch(e){dbError(e,'No se pudieron guardar los productos');}}
+let importRows=[];
+function parseSheetRows(rows){
+  const re={name:/producto|descrip|art[ií]culo|detalle|nombre|item/i,price:/precio|costo|importe|valor|lista|\$/i,pack:/present|envase|unidad|medida|peso|formato/i,code:/c[oó]d|sku|ref/i};
+  let hi=rows.findIndex(r=>r&&r.filter(c=>c!=null&&c!=='').length>=2&&r.some(c=>re.name.test(String(c))));
+  const hasHead=hi>=0;if(!hasHead)hi=-1;
+  const head=hasHead?rows[hi].map(c=>String(c||'')):[];
+  const find=r=>head.findIndex(h=>r.test(h));
+  let ci={name:find(re.name),price:find(re.price),pack:find(re.pack),code:find(re.code)};
+  const body=rows.slice(hi+1).filter(r=>r&&r.some(c=>c!=null&&c!==''));
+  if(ci.name<0)ci.name=0;
+  if(ci.price<0){const n=Math.max(...body.slice(0,30).map(r=>r.length),0);let best=-1,bc=0;for(let c=0;c<n;c++){if(c===ci.name)continue;const k=body.slice(0,30).filter(r=>parseNum(r[c])!=null).length;if(k>bc){bc=k;best=c;}}ci.price=best;}
+  return body.map(r=>({name:String(r[ci.name]||'').trim(),price:ci.price>=0?parseNum(r[ci.price]):null,pack:ci.pack>=0?String(r[ci.pack]||'').trim():'',code:ci.code>=0?String(r[ci.code]||'').trim():''})).filter(x=>x.name&&x.price!=null);
+}
+async function handleProductFile(e){
+  const file=e.target.files[0];e.target.value='';if(!file)return;
+  if(typeof XLSX==='undefined'){showToast('No cargó el lector de Excel, revisá la conexión','error');return;}
+  try{const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];
+    importRows=parseSheetRows(XLSX.utils.sheet_to_json(ws,{header:1,defval:''}));
+    if(!importRows.length){showToast('No encontré productos con precio en el archivo','error');return;}
+    const guess=file.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim();
+    createModal('Importar lista de precios',`<div class="cl-sub" style="margin-bottom:8px">Se encontraron <b>${importRows.length}</b> productos. Ejemplos:<br>${importRows.slice(0,4).map(r=>`• ${esc(r.name)} — ${money(r.price)}`).join('<br>')}</div><div class="form-group"><label class="form-label">Proveedor *</label><input class="form-input" id="i-sup" list="i-sup-list" value="${esc(prodSupplier!=='all'?prodSupplier:guess)}"><datalist id="i-sup-list">${suppliers().map(s=>`<option value="${esc(s)}">`).join('')}</datalist></div><div class="form-group"><label class="form-label">Los precios del archivo son…</label><select class="form-select" id="i-kind"><option value="cost">Costo (lo que le pago al proveedor)</option><option value="price">Precio de venta</option></select></div><div class="cl-sub">Si el producto ya existe para ese proveedor, se actualiza el precio. No se duplican.</div>`,
+    async()=>{const sup=document.getElementById('i-sup').value.trim();if(!sup){showToast('Ingresá el proveedor','error');return;}const kind=document.getElementById('i-kind').value;
+      const idx=new Map(state.products.map(p=>[prodKey(p.supplier,p.name),p]));const touched=[];let nuevos=0,act=0;
+      importRows.forEach(r=>{const k=prodKey(sup,r.name);let p=idx.get(k);if(p){act++;}else{p={id:uid(),supplier:sup,name:r.name};state.products.push(p);idx.set(k,p);nuevos++;}p[kind]=r.price;if(r.pack)p.pack=r.pack;if(r.code)p.code=r.code;touched.push(p);});
+      closeModal();showToast('Guardando productos...');await commitProducts(touched);prodSupplier=sup;renderContent();showToast(`✓ ${nuevos} nuevos, ${act} actualizados`,'success',4000);},'Importar');
+  }catch(err){console.error(err);showToast('No pude leer el archivo','error');}
+}
 </script>
 <style>
 .ui-icon-users::before{width:6px;height:6px;border:2px solid currentColor;border-radius:50%;left:6px;top:1px;}
