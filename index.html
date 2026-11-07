@@ -1881,7 +1881,7 @@ function renderClients(){
   const dueBox=due.length?`<div class="cl-due">📅 <b>Para visitar/contactar hoy o atrasados (${due.length}):</b> ${due.map(c=>`<b onclick="openClientDetail('${c.id}')">${esc(c.name)}</b> (${formatDate(c.nextVisit)})`).join(' · ')}</div>`:'';
   const cards=list.map(c=>{const s=CLIENT_STATUS[c.status]||CLIENT_STATUS.porvisitar;const ords=clientOrders(c.id);const pend=ords.filter(t=>!['completado','cancelado'].includes(t.status));const next=pend.filter(t=>t.dueDate).sort((a,b)=>a.dueDate.localeCompare(b.dueDate))[0];
     return`<div class="cl-card" style="--c:${s.c}" onclick="openClientDetail('${c.id}')"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><div class="cl-name">${esc(c.name)}</div>${c.business?`<div class="cl-sub">${esc(c.business)}${c.type?' · '+esc(c.type):''}</div>`:(c.type?`<div class="cl-sub">${esc(c.type)}</div>`:'')}</div>${statusBadge(c.status)}</div>${c.phone?`<div class="cl-sub">📞 ${esc(c.phone)}</div>`:''}${c.address||c.zone?`<div class="cl-sub">📍 ${esc([c.address,c.zone].filter(Boolean).join(' · '))}</div>`:''}<div class="cl-sub">${pend.length?`🛒 ${pend.length} pedido${pend.length!==1?'s':''} pendiente${pend.length!==1?'s':''}${next?' · próx. '+formatDate(next.dueDate):''}`:`${ords.length} pedido${ords.length!==1?'s':''} en total`}${c.nextVisit?` · 🚶 ${formatDate(c.nextVisit)}`:''}</div><div class="cl-actions" onclick="event.stopPropagation()">${c.phone?`<a href="tel:${digits(c.phone)}">📞 Llamar</a><a href="${waLink(c.phone)}" target="_blank" rel="noopener">💬 WhatsApp</a>`:''}${c.address||c.zone?`<a href="${mapsLink(c)}" target="_blank" rel="noopener">🗺 Maps</a>`:''}</div></div>`;}).join('');
-  return`<div class="cl-wrap animate-fade-in"><div class="cl-top"><div class="projects-heading">Clientes</div><button class="btn btn-primary btn-sm" onclick="openClientModal()">${uiIcon('plus')} Nuevo cliente</button></div>${chips}${dueBox}${list.length?`<div class="cl-grid">${cards}</div>`:`<div class="empty-state" style="height:140px"><span>${state.clients.length?'Sin resultados':'Todavía no cargaste clientes. Tocá "Nuevo cliente".'}</span></div>`}</div>`;
+  return`<div class="cl-wrap animate-fade-in"><div class="cl-top"><div class="projects-heading">Clientes</div><div class="cl-actions"><button class="btn btn-primary btn-sm" onclick="openClientModal()">${uiIcon('plus')} Nuevo cliente</button><button onclick="downloadClientTemplate()">📄 Plantilla Excel</button><button onclick="document.getElementById('cl-file').click()">📥 Importar Excel</button><button onclick="exportClients()">📤 Exportar</button></div></div><input type="file" id="cl-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleClientFile(event)">${chips}${dueBox}${list.length?`<div class="cl-grid">${cards}</div>`:`<div class="empty-state" style="height:140px"><span>${state.clients.length?'Sin resultados':'Todavía no cargaste clientes. Tocá "Nuevo cliente".'}</span></div>`}</div>`;
 }
 function openClientModal(id){
   const c=id?getClient(id):null;const v=k=>esc(c?c[k]||'':'');
@@ -1966,6 +1966,57 @@ function orderWhatsApp(taskId){
   const lines=(t.items||[]).map(it=>`• ${it.qty} ${it.mode==='paq'?'paq. x'+it.units:'un.'} ${it.name}: ${money(itemSub(it))}`);
   const txt=`Pedido${c?' para '+c.name:''}${t.dueDate?' - entrega '+formatDate(t.dueDate,t.dueTime):''}\n${lines.join('\n')}\nTotal: ${money(orderTotal(t))}`;
   const base=c&&c.phone?waLink(c.phone):'https://wa.me/';window.open(base+'?text='+encodeURIComponent(txt),'_blank');
+}
+</script>
+<script>
+/* ===== CLIENTES: plantilla Excel, importar y exportar ===== */
+const CL_COLS=['Nombre','Negocio','Rubro','Celular','Otro teléfono','Dirección','Zona','Estado','Próxima visita','Nota'];
+function xlsReady(){if(typeof XLSX==='undefined'){showToast('No cargó el lector de Excel, revisá la conexión','error');return false;}return true;}
+function downloadClientTemplate(){
+  if(!xlsReady())return;
+  const ej=[['Juan Pérez','Panadería El Sol','Panadería','381 5123456','','Mate de Luna 100','Centro','Por visitar','2026-11-20','Lo recomendó Marcos'],['María López','Kiosco Sur','Kiosco','381 5987654','381 4223344','Av. Roca 500','Barrio Sur','Cliente activo','','Compra todos los lunes']];
+  const ws=XLSX.utils.aoa_to_sheet([CL_COLS,...ej]);ws['!cols']=CL_COLS.map((c,i)=>({wch:[22,24,14,16,16,28,16,16,16,36][i]}));
+  const info=[['Cómo completar'],[''],['Nombre','Obligatorio. El resto es opcional.'],['Celular','Con o sin 0 y 15. Ej: 381 5123456'],['Estado','Uno de: '+Object.values(CLIENT_STATUS).map(s=>s.l).join(', ')+'. Si lo dejás vacío queda "Por visitar".'],['Rubro','Ej: '+CLIENT_TYPES.join(', ')],['Próxima visita','Fecha en formato AAAA-MM-DD (ej: 2026-11-20) o DD/MM/AAAA. Opcional.'],['Nota','Se guarda como primera nota del cliente.'],[''],['Borrá las 2 filas de ejemplo de la hoja "Clientes" antes de cargar tus datos.']];
+  const wi=XLSX.utils.aoa_to_sheet(info);wi['!cols']=[{wch:18},{wch:90}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Clientes');XLSX.utils.book_append_sheet(wb,wi,'Instrucciones');
+  XLSX.writeFile(wb,'plantilla-clientes.xlsx');showToast('✓ Plantilla descargada','success');
+}
+function exportClients(){
+  if(!xlsReady())return;if(!state.clients.length){showToast('No hay clientes para exportar','error');return;}
+  const rows=state.clients.slice().sort((a,b)=>a.name.localeCompare(b.name,'es')).map(c=>[c.name,c.business,c.type,c.phone,c.phone2,c.address,c.zone,(CLIENT_STATUS[c.status]||CLIENT_STATUS.porvisitar).l,c.nextVisit,(c.notes||[]).map(n=>n.text).join(' | ')]);
+  const ws=XLSX.utils.aoa_to_sheet([CL_COLS,...rows]);ws['!cols']=CL_COLS.map((c,i)=>({wch:[22,24,14,16,16,28,16,16,16,36][i]}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Clientes');XLSX.writeFile(wb,'clientes-'+localDateStr(0)+'.xlsx');showToast('✓ Clientes exportados','success');
+}
+function cellStr(v){if(v==null)return'';if(v instanceof Date){return isNaN(v)?'':v.getFullYear()+'-'+pad2(v.getMonth()+1)+'-'+pad2(v.getDate());}return String(v).trim();}
+function parseDateCell(v){const s=cellStr(v);if(!s)return'';let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return m[1]+'-'+pad2(m[2])+'-'+pad2(m[3]);m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/);if(m){const y=m[3].length===2?'20'+m[3]:m[3];return y+'-'+pad2(m[2])+'-'+pad2(m[1]);}return'';}
+function parseStatusCell(v){const n=normTxt(cellStr(v));if(!n)return'porvisitar';const hit=Object.entries(CLIENT_STATUS).find(([k,s])=>normTxt(s.l)===n||k===n||n.includes(normTxt(s.l))||normTxt(s.l).includes(n));return hit?hit[0]:'porvisitar';}
+function parseClientRows(rows){
+  const hi=rows.findIndex(r=>r&&r.some(c=>/^nombre$/i.test(cellStr(c))));
+  if(hi<0)return null;
+  const head=rows[hi].map(c=>normTxt(cellStr(c)));
+  const col=(...names)=>head.findIndex(h=>names.some(n=>h===n||h.startsWith(n)));
+  const ix={name:col('nombre'),business:col('negocio','comercio'),type:col('rubro'),phone:col('celular','telefono','tel'),phone2:col('otro tel','telefono 2','tel 2'),address:col('direccion'),zone:col('zona','barrio'),status:col('estado'),next:col('proxima','visita'),note:col('nota','comentario','observ')};
+  const g=(r,k)=>ix[k]>=0?r[ix[k]]:'';
+  return rows.slice(hi+1).filter(r=>r&&cellStr(g(r,'name'))).map(r=>({name:cellStr(g(r,'name')),business:cellStr(g(r,'business')),type:cellStr(g(r,'type')),phone:cellStr(g(r,'phone')),phone2:cellStr(g(r,'phone2')),address:cellStr(g(r,'address')),zone:cellStr(g(r,'zone')),status:parseStatusCell(g(r,'status')),nextVisit:parseDateCell(g(r,'next')),note:cellStr(g(r,'note'))}));
+}
+function clientDupKey(c){const d=digits(c.phone).slice(-8);return d.length>=7?'t'+d:'n'+normTxt(c.name)+'|'+normTxt(c.business||'');}
+let clientImport=[];
+async function handleClientFile(e){
+  const file=e.target.files[0];e.target.value='';if(!file||!xlsReady())return;
+  try{const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});const list=parseClientRows(rows);
+    if(list===null){showToast('No encontré la columna "Nombre". Usá la plantilla.','error');return;}
+    if(!list.length){showToast('El archivo no tiene clientes cargados','error');return;}
+    const exist=new Set(state.clients.map(clientDupKey));const seen=new Set();
+    clientImport=list.map(c=>{const k=clientDupKey(c);const dup=exist.has(k)||seen.has(k);seen.add(k);return{...c,dup};});
+    const nuevos=clientImport.filter(c=>!c.dup).length,dups=clientImport.length-nuevos;
+    createModal('Importar clientes',`<div class="cl-sub" style="line-height:1.7;margin-bottom:8px">Se leyeron <b>${clientImport.length}</b> filas:<br>✅ <b>${nuevos}</b> clientes nuevos<br>${dups?`⚠️ <b>${dups}</b> ya existen (mismo celular o mismo nombre y negocio) y se van a omitir`:'Ninguno repetido'}</div><div class="cl-sub">Ejemplos:<br>${clientImport.filter(c=>!c.dup).slice(0,4).map(c=>`• ${esc(c.name)}${c.business?' · '+esc(c.business):''} — ${CLIENT_STATUS[c.status].l}`).join('<br>')}</div>`,
+    async()=>{const nuevosL=clientImport.filter(c=>!c.dup);if(!nuevosL.length){closeModal();showToast('No hay clientes nuevos para importar');return;}
+      const now=new Date().toISOString();const made=nuevosL.map(c=>{const{dup,note,...rest}=c;return{id:uid(),...rest,notes:note?[{id:uid(),text:note,kind:'nota',createdAt:now}]:[],createdAt:now};});
+      state.clients.push(...made);closeModal();showToast('Guardando clientes...');
+      try{for(let i=0;i<made.length;i+=400){const b=db.batch();made.slice(i,i+400).forEach(c=>b.set(db.collection('clients').doc(String(c.id)),{id:c.id,name:c.name,business:c.business||'',phone:c.phone||'',phone2:c.phone2||'',address:c.address||'',zone:c.zone||'',type:c.type||'',status:c.status,next_visit:c.nextVisit||'',notes:c.notes,created_at:c.createdAt}));await b.commit();}}catch(err){dbError(err,'No se pudieron guardar los clientes');}
+      clientFilter='all';renderContent();showToast(`✓ ${made.length} clientes importados`,'success',4000);},`Importar ${nuevos}`);
+  }catch(err){console.error(err);showToast('No pude leer el archivo','error');}
 }
 </script>
 </body>
